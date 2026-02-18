@@ -1,0 +1,79 @@
+version: "3.8"
+
+x-airflow-common-env: &airflow-common-env
+  AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+  AIRFLOW__CORE__FERNET_KEY: ""
+  AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+  AIRFLOW__CORE__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+  AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+  AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_JWT_SECRET}
+  AIRFLOW__API__BASE_URL: http://airflow-webserver:8080
+  AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+  S3_REGION: ${S3_REGION}
+  _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-docker>=4.5.2 apache-airflow-providers-fab>=1.2.0
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:3.1.7
+  environment:
+    <<: *airflow-common-env
+  volumes:
+    - ./src/dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - /var/run/docker.sock:/var/run/docker.sock
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    - postgres
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command: -c "airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    environment:
+      <<: *airflow-common-env
+      AIRFLOW__API__BASE_URL: http://localhost:8080
+    command: api-server
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: unless-stopped
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    restart: unless-stopped
+
+  jobs-image:
+    build:
+      context: .
+      dockerfile: Dockerfile.jobs
+    image: stabssm-jobs:latest
+    profiles:
+      - build
+
+volumes:
+  postgres-db-volume:
