@@ -12,6 +12,10 @@ class StorageClient(ABC):
     ):
         raise NotImplementedError
 
+    @abstractmethod
+    def get(self, key : str):
+        raise NotImplementedError
+
 class FakeStorageClient(StorageClient):
     def upload(
             self,
@@ -20,3 +24,7 @@ class FakeStorageClient(StorageClient):
     ):
         from pprint import pprint
         pprint(f"Uploading {key} to {value}")
+
+    def get(self, key: str):
+        return {}
+
