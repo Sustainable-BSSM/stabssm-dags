@@ -34,12 +34,12 @@ def run_job(ds: str):
 
     storage_client = get_storage_client()
 
-    collect_student_job = CollectClubJob(
+    collect_club_job = CollectClubJob(
         club_crawler=club_crawler,
         storage_client=storage_client
     )
 
-    collect_student_job(ds=ds)
+    collect_club_job(ds=ds)
 
 
 if __name__ == "__main__":
