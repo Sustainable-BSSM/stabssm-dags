@@ -1,6 +1,11 @@
+import json
 from typing import Optional, Any
 
+import botocore
+from botocore.exceptions import ClientError
+
 from src.common.config.s3 import S3Config
+from src.common.util.codec import JsonSerializer, JsonDeserializer
 from src.core.client.storage import StorageClient
 import boto3
 
@@ -24,11 +29,27 @@ class S3StorageClient(StorageClient):
     def upload(
             self,
             key: str,
-            value: Optional[Any]
+            value: Any
     ):
+        body = "\n".join(
+            JsonSerializer.serialize(row) for row in value
+        ).encode("utf-8")
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=key,
-            Body=value,
-            ContentType="application/json",
+            Body=body,
+            ContentType="application/x-ndjson",
         )
+
+    def get(self, key: str):
+        try:
+            obj = self.s3_client.get_object(
+                Bucket=self.bucket_name,
+                Key=key
+            )
+            raw_str = obj["Body"].read().decode("utf-8")
+            data = [JsonDeserializer.deserialize(line) for line in raw_str.splitlines() if line.strip()]
+            return data
+
+        except ClientError as exc:
+            return None

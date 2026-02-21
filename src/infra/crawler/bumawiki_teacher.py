@@ -1,16 +1,7 @@
 from collections import defaultdict
-from enum import Enum
-
+from src.common.enum.bumawiki.teacher_type import TeacherType
 from src.core.crawler import Crawler
 from src.core.requester import Requester
-
-class TeacherType(str, Enum):
-    GENERAL = "teacher"
-    MAJOR = "major_teacher"
-    MENTOR = "mentor_teacher"
-    # 보통 교과 = teacher
-    # 전공 교과 = major_teacher
-    # 멘토 선생님 = mentor_teacher
 
 class BumawikiTeacherCrawler(Crawler):
 

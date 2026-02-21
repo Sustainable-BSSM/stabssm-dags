@@ -1,5 +1,6 @@
 import argparse
 from src.common.const.year_established import FIRST_BSSM_YEAR
+from src.common.util.bssm_generation_calculator import BSSMGenerationCalculator
 from src.core.client.storage import StorageClient
 from src.core.crawler import Crawler
 from src.core.jobs import Job
@@ -21,7 +22,7 @@ class CollectClubJob(Job):
         crawled_data = self.club_crawler.run()
         for year in crawled_data:
             students = crawled_data[year]
-            generation = FIRST_BSSM_YEAR - int(year) # 기수, ex) 1기, 2기 ···
+            generation = BSSMGenerationCalculator.calculate(year=year)
             self.storage_client.upload(
                 key=f"bronze/bumawiki/club/dt={ds}/{generation}/club.json",
                 value=students

@@ -1,5 +1,6 @@
 import argparse
 from src.common.const.year_established import FIRST_BSSM_YEAR
+from src.common.util.bssm_generation_calculator import BSSMGenerationCalculator
 from src.core.client.storage import StorageClient, FakeStorageClient
 from src.core.crawler import Crawler
 from src.core.jobs import Job
@@ -21,7 +22,7 @@ class CollectTeacherJob(Job):
         crawled_data = self.teacher_crawler.run()
         for year in crawled_data:
             teachers = crawled_data[year]
-            generation = FIRST_BSSM_YEAR - int(year) # 기수, ex) 1기, 2기 ···
+            generation = BSSMGenerationCalculator.calculate(year=year)
             self.storage_client.upload(
                 key=f"bronze/bumawiki/teacher/dt={ds}/{generation}/teacher.json",
                 value=teachers

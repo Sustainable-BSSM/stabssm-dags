@@ -15,7 +15,9 @@ class BumawikiDocsCrawler(Crawler):
 
 
     def _fetch(self, target : str):
-        fetch_data = self.requester.get(url=self.base_url)
+        fetch_data = self.requester.get(
+            url=self.base_url.format(target=target)
+        )
         fetch_data.raise_for_status()
         return fetch_data
 

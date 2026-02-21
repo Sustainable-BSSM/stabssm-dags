@@ -12,7 +12,7 @@ with DAG(
     crawl_and_upload = DockerOperator(
         task_id="crawl_and_upload",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.collect_accident --ds {{ ds }}",
+        command="src.jobs.bumawiki.collect_accident_upload_storage --ds {{ ds }}",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,

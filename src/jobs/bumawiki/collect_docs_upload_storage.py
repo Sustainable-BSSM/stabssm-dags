@@ -20,13 +20,11 @@ class CollectDocsJob(Job):
 
     def __call__(self, ds: str):
         crawled_data = self.docs_crawler.run()
-        for year in crawled_data:
-            students = crawled_data[year]
-            generation = FIRST_BSSM_YEAR - int(year) # 기수, ex) 1기, 2기 ···
-            self.storage_client.upload(
-                key=f"bronze/bumawiki/club/dt={ds}/{generation}/club.json",
-                value=students
-            )
+        docs_id = crawled_data["id"]
+        self.storage_client.upload(
+            key=f"bronze/bumawiki/docs/dt={ds}/docs-{docs_id}.json",
+            value=crawled_data
+        )
 
 
 def run_job(ds: str):
