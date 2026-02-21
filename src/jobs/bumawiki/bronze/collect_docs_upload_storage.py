@@ -1,11 +1,9 @@
 import argparse
-from src.common.const.year_established import FIRST_BSSM_YEAR
 from src.core.client.storage import StorageClient
 from src.core.crawler import Crawler
 from src.core.jobs import Job
 from src.dependencies.storage_client import get_storage_client
-from src.infra.crawler.bumawiki_club import BumawikiClubCrawler
-from src.infra.crawler.bumawiki_docs import BumawikiDocsCrawler
+from src.infra.crawler.bumawiki.docs import BumawikiDocsCrawler
 from src.infra.requester.http import HttpRequester
 
 class CollectDocsJob(Job):
