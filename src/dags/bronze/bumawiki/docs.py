@@ -19,6 +19,7 @@ with DAG(
         network_mode="bridge",
         mount_tmp_dir=False,
         do_xcom_push=True,
+        xcom_all=True,
         environment={
             "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
             "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),

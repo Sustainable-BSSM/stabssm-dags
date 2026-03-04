@@ -1,4 +1,5 @@
 import argparse
+import json
 from datetime import datetime
 from src.common.const.year_established import FIRST_BSSM_YEAR
 from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
@@ -40,7 +41,9 @@ def run_job(ds: str):
         storage_client=storage_client
     )
 
-    get_docs_titles_job(ds=ds)
+    titles = get_docs_titles_job(ds=ds)
+    for title in titles:
+        print(title)
 
 
 if __name__ == "__main__":

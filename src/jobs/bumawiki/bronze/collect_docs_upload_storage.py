@@ -16,8 +16,8 @@ class CollectDocsJob(Job):
         self.docs_crawler = docs_crawler
         self.storage_client = storage_client
 
-    def __call__(self, ds: str):
-        crawled_data = self.docs_crawler.run()
+    def __call__(self, ds: str, title: str):
+        crawled_data = self.docs_crawler.run(title)
         docs_id = crawled_data["id"]
         self.storage_client.upload(
             key=f"bronze/bumawiki/docs/dt={ds}/docs-{docs_id}.json",
@@ -25,7 +25,7 @@ class CollectDocsJob(Job):
         )
 
 
-def run_job(ds: str):
+def run_job(ds: str, title: str):
     requester = HttpRequester()
     docs_crawler = BumawikiDocsCrawler(requester=requester)
 
@@ -36,12 +36,13 @@ def run_job(ds: str):
         storage_client=storage_client
     )
 
-    collect_docs_job(ds=ds)
+    collect_docs_job(ds=ds, title=title)
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('--ds', required=True, type=str)
+    p.add_argument('--title', required=True, type=str)
     args = p.parse_args()
 
-    run_job(ds=args.ds)
+    run_job(ds=args.ds, title=args.title)
