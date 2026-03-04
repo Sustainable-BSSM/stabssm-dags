@@ -7,3 +7,12 @@ class S3Config:
     SECRET_KEY : str = os.getenv("S3_SECRET_KEY")
     BUCKET_NAME : str = os.getenv("S3_BUCKET_NAME")
     REGION : str = os.getenv("S3_REGION", "ap-northeast-2")
+
+    @classmethod
+    def to_env_dict(cls) -> dict:
+        return {
+            "S3_ACCESS_KEY": cls.ACCESS_KEY,
+            "S3_SECRET_KEY": cls.SECRET_KEY,
+            "S3_BUCKET_NAME": cls.BUCKET_NAME,
+            "S3_REGION": cls.REGION,
+        }

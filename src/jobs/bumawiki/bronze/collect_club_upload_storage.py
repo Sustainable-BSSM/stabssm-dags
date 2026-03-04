@@ -1,4 +1,6 @@
 import argparse
+
+from src.common.const.year_established import FIRST_BSSM_YEAR
 from src.common.util.bssm_generation_calculator import BSSMGenerationCalculator
 from src.core.client.storage import StorageClient
 from src.core.crawler import Crawler
@@ -19,9 +21,18 @@ class CollectClubJob(Job):
 
     def __call__(self, ds: str):
         crawled_data = self.club_crawler.run()
+
+        # 1기는 전공동아리를 두번 한 것으로 추정됨.
+        # 1기 전공동아리 합병
+        first_year = str(FIRST_BSSM_YEAR)
+        second_year = str(FIRST_BSSM_YEAR + 1)
+        if first_year in crawled_data:
+            crawled_data.setdefault(second_year, []).extend(crawled_data.pop(first_year))
+
         for year in crawled_data:
             students = crawled_data[year]
-            generation = BSSMGenerationCalculator.calculate(year=year)
+
+            generation = BSSMGenerationCalculator.calculate(year=year) - 1
             self.storage_client.upload(
                 key=f"bronze/bumawiki/club/dt={ds}/{generation}/club.json",
                 value=students

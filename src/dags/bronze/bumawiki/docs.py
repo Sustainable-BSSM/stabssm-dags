@@ -1,6 +1,8 @@
+import os
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
+
 
 with DAG(
     dag_id="bronze__collect_bumawiki_docs",
@@ -12,11 +14,17 @@ with DAG(
     list_docs_titles = DockerOperator(
         task_id="list_docs_titles",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.get_docs_titles --ds {{ ds }}",
+        command="src.jobs.bumawiki.bronze.get_docs_titles --ds {{ ds }}",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        do_xcom_push=True
+        do_xcom_push=True,
+        environment={
+            "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
+            "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
+            "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
+            "S3_REGION": os.environ.get("S3_REGION"),
+        },
     )
 
     titles = list_docs_titles.output
@@ -27,7 +35,13 @@ with DAG(
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        command="src.jobs.bumawiki.collect_docs_upload_storage --ds {{ ds }} --title {{ params.title }}",
+        command="src.jobs.bumawiki.bronze.collect_docs_upload_storage --ds {{ ds }} --title {{ params.title }}",
+        environment={
+            "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
+            "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
+            "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
+            "S3_REGION": os.environ.get("S3_REGION"),
+        },
     ).expand(
         params=titles.map(lambda t: {"title": t})
     )

@@ -4,7 +4,7 @@ from src.core.client.storage import StorageClient
 from src.core.crawler import Crawler
 from src.core.jobs import Job
 from src.dependencies.storage_client import get_storage_client
-from src.infra.crawler.bumawiki.student import BumawikiStudentCrawler
+from src.infra.crawler.bumawiki.accident import BumawikiAccidentCrawler
 from src.infra.requester.http import HttpRequester
 
 class CollectAccidentJob(Job):
@@ -30,7 +30,7 @@ class CollectAccidentJob(Job):
 
 def run_job(ds: str):
     requester = HttpRequester()
-    accident_crawler = BumawikiStudentCrawler(requester=requester)
+    accident_crawler = BumawikiAccidentCrawler(requester=requester)
 
     storage_client = get_storage_client()
 
