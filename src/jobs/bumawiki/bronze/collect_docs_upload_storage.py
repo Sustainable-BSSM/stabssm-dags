@@ -19,8 +19,9 @@ class CollectDocsJob(Job):
     def __call__(self, ds: str, title: str):
         crawled_data = self.docs_crawler.run(title)
         docs_id = crawled_data["id"]
+        docs_title = crawled_data["title"]
         self.storage_client.upload(
-            key=f"bronze/bumawiki/docs/dt={ds}/docs-{docs_id}.json",
+            key=f"bronze/bumawiki/docs/dt={ds}/docs-{docs_id}-{docs_title}.json",
             value=crawled_data
         )
 

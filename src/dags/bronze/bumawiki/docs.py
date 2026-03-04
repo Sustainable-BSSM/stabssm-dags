@@ -1,5 +1,7 @@
 import os
+import shlex
 from airflow import DAG
+from airflow.decorators import task
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
@@ -28,7 +30,14 @@ with DAG(
         },
     )
 
-    titles = list_docs_titles.output
+    @task
+    def make_commands(titles: list, ds: str = None) -> list:
+        return [
+            f"src.jobs.bumawiki.bronze.collect_docs_upload_storage --ds {ds} --title {shlex.quote(t)}"
+            for t in titles
+        ]
+
+    commands = make_commands(list_docs_titles.output)
 
     crawl_and_upload = DockerOperator.partial(
         task_id="crawl_and_write",
@@ -36,15 +45,12 @@ with DAG(
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        command="src.jobs.bumawiki.bronze.collect_docs_upload_storage --ds {{ ds }} --title {{ params.title }}",
         environment={
             "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
             "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
             "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
             "S3_REGION": os.environ.get("S3_REGION"),
         },
-    ).expand(
-        params=titles.map(lambda t: {"title": t})
-    )
+    ).expand(command=commands)
 
-    list_docs_titles >> crawl_and_upload
+    list_docs_titles >> commands >> crawl_and_upload
