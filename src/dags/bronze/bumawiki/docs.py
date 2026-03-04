@@ -1,7 +1,6 @@
 import os
 import shlex
-from airflow import DAG
-from airflow.decorators import task
+from airflow import DAG, task
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
