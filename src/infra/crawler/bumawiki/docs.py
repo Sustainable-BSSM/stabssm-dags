@@ -1,5 +1,7 @@
 
 
+from urllib.parse import quote
+
 from src.core.crawler import Crawler
 from src.core.requester import Requester
 
@@ -16,7 +18,7 @@ class BumawikiDocsCrawler(Crawler):
 
     def _fetch(self, target : str):
         fetch_data = self.requester.get(
-            url=self.base_url.format(target=target)
+            url=self.base_url.format(target=quote(target, safe=""))
         )
         fetch_data.raise_for_status()
         return fetch_data

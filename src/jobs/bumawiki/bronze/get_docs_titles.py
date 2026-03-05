@@ -42,8 +42,7 @@ def run_job(ds: str):
     )
 
     titles = get_docs_titles_job(ds=ds)
-    for title in titles:
-        print(title)
+    print(json.dumps(titles))
 
 
 if __name__ == "__main__":

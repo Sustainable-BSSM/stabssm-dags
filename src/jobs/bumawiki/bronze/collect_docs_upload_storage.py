@@ -22,7 +22,7 @@ class CollectDocsJob(Job):
         docs_title = crawled_data["title"]
         self.storage_client.upload(
             key=f"bronze/bumawiki/docs/dt={ds}/docs-{docs_id}-{docs_title}.json",
-            value=crawled_data
+            value=[crawled_data]
         )
 
 
