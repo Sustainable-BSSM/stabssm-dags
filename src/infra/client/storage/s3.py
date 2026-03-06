@@ -41,6 +41,22 @@ class S3StorageClient(StorageClient):
             ContentType="application/x-ndjson",
         )
 
+    def list_keys(self, prefix: str) -> list[str]:
+        keys = []
+        paginator = self.s3_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket_name, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                keys.append(obj["Key"])
+        return keys
+
+    def upload_bytes(self, key: str, data: bytes, content_type: str = "application/octet-stream"):
+        self.s3_client.put_object(
+            Bucket=self.bucket_name,
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+        )
+
     def get(self, key: str):
         try:
             obj = self.s3_client.get_object(

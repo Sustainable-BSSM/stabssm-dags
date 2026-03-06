@@ -16,6 +16,14 @@ class StorageClient(ABC):
     def get(self, key : str):
         raise NotImplementedError
 
+    @abstractmethod
+    def list_keys(self, prefix: str) -> list[str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def upload_bytes(self, key: str, data: bytes, content_type: str = "application/octet-stream"):
+        raise NotImplementedError
+
 class FakeStorageClient(StorageClient):
     def upload(
             self,
@@ -27,4 +35,10 @@ class FakeStorageClient(StorageClient):
 
     def get(self, key: str):
         return {}
+
+    def list_keys(self, prefix: str) -> list[str]:
+        return []
+
+    def upload_bytes(self, key: str, data: bytes, content_type: str = "application/octet-stream"):
+        pass
 
