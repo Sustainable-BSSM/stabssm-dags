@@ -6,6 +6,7 @@ x-airflow-common-env: &airflow-common-env
   AIRFLOW__CORE__LOAD_EXAMPLES: "false"
   AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
   AIRFLOW__CORE__FERNET_KEY: ""
+  AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: "120"
   AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
   AIRFLOW__CORE__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
   AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
@@ -40,6 +41,7 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
 
   airflow-init:
     <<: *airflow-common

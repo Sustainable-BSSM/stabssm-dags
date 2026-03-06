@@ -5,17 +5,16 @@ from pendulum import datetime
 
 
 with DAG(
-    dag_id="bronze__collect_bumawiki_student",
+    dag_id="silver__transform_bumawiki_docs",
     start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-    schedule="@weekly",
+    schedule="@monthly",
     catchup=False,
     max_active_runs=1,
-) as dag:
-    # TODO: 부마위키 학생 정보 크롤링 후 s3 업로드
-    crawl_and_upload = DockerOperator(
-        task_id="crawl_and_upload",
+):
+    transform_and_upload = DockerOperator(
+        task_id="transform_and_upload",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.bronze.collect_student_upload_storage --ds {{ ds }}",
+        command="src.jobs.bumawiki.silver.transform_docs_detail_parquet --ds {{ ds }}",
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,

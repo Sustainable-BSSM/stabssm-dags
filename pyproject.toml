@@ -8,5 +8,6 @@ dependencies = [
     "apache-airflow>=3.1.7",
     "apache-airflow-providers-docker>=4.5.2",
     "boto3>=1.42.51",
+    "playwright>=1.58.0",
     "polars>=1.38.1",
 ]
