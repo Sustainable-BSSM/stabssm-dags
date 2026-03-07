@@ -1,20 +1,37 @@
+import re
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List
 
 
 class LLM(ABC):
 
-    @abstractmethod
+    def __init__(
+            self,
+            template : str = None,
+            temperature : float = 1.0,
+            max_tokens : int = None,
+    ) -> None:
+        self.template = template
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+
+    def _inject(self, query: str, variables: List) -> str:
+        names = re.findall(r'\{([^{}]+)\}', query)
+        return query.format(**dict(zip(names, variables)))
+
     async def chat(
             self,
-            query : str
+            query : str,
+            variables : List = None,
     ) -> Any:
+        prompt = self._inject(query, variables) if variables else query
+        return await self._call(prompt)
+
+    @abstractmethod
+    async def _call(self, prompt: str) -> Any:
         raise NotImplementedError
 
 
 class FakeLLM(LLM):
-    async def chat(
-            self,
-            query : str
-    ) -> str:
-        return "안녕하세요, 저는 나날이 성장하는 Large Language Model입니다."
+    async def _call(self, prompt: str) -> str:
+        return prompt

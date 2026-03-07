@@ -69,3 +69,10 @@ class S3StorageClient(StorageClient):
 
         except ClientError as exc:
             return None
+
+    def get_bytes(self, key: str) -> bytes | None:
+        try:
+            obj = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            return obj["Body"].read()
+        except ClientError:
+            return None
