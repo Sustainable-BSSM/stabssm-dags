@@ -1,52 +1,50 @@
 import argparse
-import io
-import json
-
-import polars as pl
 
 from src.common.config.s3 import S3Config
-from src.core.client.storage import StorageClient
 from src.core.jobs import Job
-from src.dependencies.storage_client import get_storage_client
+from src.infra.duckdb import create_conn
 
 
 class TransformDocsDetailToParquetJob(Job):
 
-    def __init__(self, storage_client: StorageClient, bucket_name: str = S3Config.BUCKET_NAME):
-        self.storage_client = storage_client
-        self.bucket = bucket_name
+    def __init__(self, bucket: str = S3Config.BUCKET_NAME):
+        self._bucket = bucket
+        self._conn = create_conn()
 
     def __call__(self, ds: str):
-        prefix = f"bronze/bumawiki/docs/dt={ds}/"
-        keys = self.storage_client.list_keys(prefix=prefix)
+        df = self._conn.execute(f"""
+            SELECT
+                id,
+                title,
+                contents,
+                docsType       AS docstype,
+                lastModifiedAt AS lastmodifiedat,
+                enroll,
+                TO_JSON(contributors) AS contributors,
+                status,
+                version,
+                thumbnail,
+                docsDetail     AS docsdetail
+            FROM read_json(
+                's3://{self._bucket}/bronze/bumawiki/docs/dt={ds}/*',
+                format       = 'newline_delimited',
+                auto_detect  = true
+            )
+        """).pl()
 
-        if not keys:
+        if df.is_empty():
             return
 
-        rows = []
-        for key in keys:
-            data = self.storage_client.get(key)
-            if not data:
-                continue
-            doc = data[0]
-            doc["contributors"] = json.dumps(doc.get("contributors", []), ensure_ascii=False)
-            rows.append(doc)
-
-        if not rows:
-            return
-
-        df = pl.DataFrame(rows, infer_schema_length=len(rows))
-
-        buf = io.BytesIO()
-        df.write_parquet(buf, compression="snappy")
-
-        key = f"silver/bumawiki/docs/dt={ds}/part-0000.parquet"
-        self.storage_client.upload_bytes(key=key, data=buf.getvalue())
+        self._conn.register("silver_df", df)
+        self._conn.execute(f"""
+            COPY silver_df
+            TO 's3://{self._bucket}/silver/bumawiki/docs/dt={ds}/part-0000.parquet'
+            (FORMAT PARQUET, COMPRESSION SNAPPY)
+        """)
 
 
 def run_job(ds: str):
-    storage_client = get_storage_client()
-    job = TransformDocsDetailToParquetJob(storage_client=storage_client)
+    job = TransformDocsDetailToParquetJob()
     job(ds=ds)
 
 

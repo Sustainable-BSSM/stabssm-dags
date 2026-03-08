@@ -1,18 +1,16 @@
 import argparse
 import asyncio
-import io
 import json
 from typing import List
 
-import polars as pl
-
-from src.common.config.s3 import S3Config
 from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
-from src.core.client.storage import StorageClient
 from src.core.graph.edge.model import Edge, EdgeType
 from src.core.graph.node.model import Node, NodeRegistry, NodeType
 from src.core.jobs import Job
-from src.dependencies.storage_client import get_storage_client
+from src.core.repository.bumawiki.docs import BumaWikiDocsRepository
+from src.core.repository.bumawiki.graph import BumaWikiGraphRepository
+from src.dependencies.repository.bumawiki_docs import get_bumawiki_docs_repository
+from src.dependencies.repository.bumawiki_graph import get_bumawiki_graph_repository
 from src.infra.graph.edge.link_edge_maker import LinkEdgeMaker
 from src.infra.graph.edge.llm_edge_maker import LLMEdgeMaker
 
@@ -37,14 +35,13 @@ def _dedup_edges(edges: List[Edge]) -> List[Edge]:
 
 
 def _row_to_node(row: dict) -> Node:
-    # bumawiki API 응답 필드명 기준 (camelCase)
-    docs_type = BumaWikiDocsType(row["docsType"])
+    docs_type = BumaWikiDocsType(row["docstype"])
     return Node(
         id=row["id"],
         title=row["title"],
         type=_DOCS_TYPE_TO_NODE_TYPE[docs_type],
         docs_type=docs_type,
-        last_modified_at=row["lastModifiedAt"],
+        last_modified_at=row["lastmodifiedat"],
         enroll=row.get("enroll", 0),
     )
 
@@ -73,26 +70,20 @@ class BuildDocsGraphJob(Job):
 
     def __init__(
             self,
-            storage_client: StorageClient,
-            bucket_name: str = S3Config.BUCKET_NAME,
+            repository: BumaWikiDocsRepository,
+            graph_repository: BumaWikiGraphRepository,
     ):
-        self._storage = storage_client
-        self._bucket = bucket_name
+        self._repository = repository
+        self._graph_repository = graph_repository
 
     def __call__(self, ds: str):
         asyncio.run(self._run(ds))
 
     async def _run(self, ds: str):
         # 1. silver parquet 로드
-        prefix = f"silver/bumawiki/docs/dt={ds}/"
-        keys = self._storage.list_keys(prefix)
-        if not keys:
+        df = await self._repository.get(ds)
+        if df.is_empty():
             return
-
-        df = pl.concat([
-            pl.read_parquet(io.BytesIO(self._storage.get_bytes(key)))
-            for key in keys
-        ])
         rows = df.to_dicts()
 
         # 2. 노드 생성 + NodeRegistry 구성
@@ -109,7 +100,7 @@ class BuildDocsGraphJob(Job):
         all_edges: List[Edge] = []
         for node in nodes:
             row = row_map[node.title]
-            content = row.get("content", "")
+            content = row.get("contents", "")
 
             # 링크 기반 + LLM 기반 edge
             edges = await _build_edges_for_node(node, content, registry)
@@ -130,50 +121,14 @@ class BuildDocsGraphJob(Job):
         all_edges = _dedup_edges(all_edges)
 
         # 4. parquet 직렬화 + 업로드
-        self._upload_nodes(nodes, ds)
-        self._upload_edges(all_edges, ds)
-
-    def _upload_nodes(self, nodes: List[Node], ds: str):
-        rows = [
-            {
-                "id": n.id,
-                "title": n.title,
-                "type": n.type.value,
-                "docs_type": n.docs_type.value,
-                "last_modified_at": str(n.last_modified_at),
-                "enroll": n.enroll,
-            }
-            for n in nodes
-        ]
-        buf = io.BytesIO()
-        pl.DataFrame(rows).write_parquet(buf, compression="snappy")
-        self._storage.upload_bytes(
-            key=f"gold/bumawiki/docs/nodes/dt={ds}/part-0000.parquet",
-            data=buf.getvalue(),
-        )
-
-    def _upload_edges(self, edges: List[Edge], ds: str):
-        rows = [
-            {
-                "type": e.type.value,
-                "source_id": e.source.id,
-                "source_title": e.source.title,
-                "target_id": e.target.id,
-                "target_title": e.target.title,
-            }
-            for e in edges
-        ]
-        buf = io.BytesIO()
-        pl.DataFrame(rows).write_parquet(buf, compression="snappy")
-        self._storage.upload_bytes(
-            key=f"gold/bumawiki/docs/edges/dt={ds}/part-0000.parquet",
-            data=buf.getvalue(),
-        )
+        self._graph_repository.save_nodes(nodes, ds)
+        self._graph_repository.save_edges(all_edges, ds)
 
 
 def run_job(ds: str):
-    storage_client = get_storage_client()
-    job = BuildDocsGraphJob(storage_client=storage_client)
+    repository = get_bumawiki_docs_repository()
+    graph_repository = get_bumawiki_graph_repository()
+    job = BuildDocsGraphJob(repository=repository, graph_repository=graph_repository)
     job(ds=ds)
 
 

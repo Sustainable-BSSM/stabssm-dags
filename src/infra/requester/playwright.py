@@ -1,7 +1,9 @@
 import platform
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from playwright.sync_api import sync_playwright, BrowserContext
+from playwright.sync_api import sync_playwright, BrowserContext, Cookie
 
 from src.core.requester import Requester
 
@@ -33,11 +35,21 @@ class PlaywrightRequester(Requester):
         self.headless = headless
         self._context: Optional[BrowserContext] = None
         self._playwright = None
+        self._tmp_dir: Optional[str] = None
+
+    def _copy_profile_to_tmp(self) -> str:
+        src = Path(self.user_data_dir) / self.profile_dir
+        tmp_dir = tempfile.mkdtemp(prefix="playwright_chrome_")
+        dst = Path(tmp_dir) / self.profile_dir
+        ignore = shutil.ignore_patterns("Cache", "Code Cache", "GPUCache", "ShaderCache", "DawnCache")
+        shutil.copytree(str(src), str(dst), ignore=ignore)
+        return tmp_dir
 
     def __enter__(self):
+        self._tmp_dir = self._copy_profile_to_tmp()
         self._playwright = sync_playwright().start()
         self._context = self._playwright.chromium.launch_persistent_context(
-            user_data_dir=self.user_data_dir,
+            user_data_dir=self._tmp_dir,
             channel="chrome",
             headless=self.headless,
             args=[f"--profile-directory={self.profile_dir}"],
@@ -49,6 +61,8 @@ class PlaywrightRequester(Requester):
             self._context.close()
         if self._playwright:
             self._playwright.stop()
+        if self._tmp_dir:
+            shutil.rmtree(self._tmp_dir, ignore_errors=True)
 
     def get(
             self,
@@ -72,7 +86,6 @@ class PlaywrightRequester(Requester):
 
         response = page.goto(url, wait_until="domcontentloaded")
         content = page.content()
-        breakpoint()
         page.close()
 
         return PlaywrightResponse(
@@ -81,7 +94,7 @@ class PlaywrightRequester(Requester):
             url=url
         )
 
-    def get_cookies(self, url: str) -> List[Dict[str, Any]]:
+    def get_cookies(self, url: str) -> List[Cookie]:
         if not self._context:
             raise RuntimeError("PlaywrightRequester must be used as context manager")
         return self._context.cookies(url)
