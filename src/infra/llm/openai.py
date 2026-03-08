@@ -1,7 +1,9 @@
 from typing import Any
 
-from src.core.llm import LLM
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
+from src.common.config.openai import OpenAIConfig
+from src.core.llm import LLM
 
 
 class OpenAILLM(LLM):
@@ -21,6 +23,7 @@ class OpenAILLM(LLM):
         self.model = ChatOpenAI(
             model="gpt-5o-",
             temperature=self.temperature,
+            api_key=SecretStr(OpenAIConfig.API_KEY),
         )
 
     async def _call(

@@ -8,7 +8,7 @@ from src.dependencies.llm import get_llm
 from src.infra.llm.output_parser.edge import EdgeOutputParser
 
 
-_PROMPT_TEMPLATE = """다음은 부마위키 문서입니다.
+_PROMPT_TEMPLATE = """다음은 교내 문서입니다.
 
 문서 제목: {title}
 문서 내용:
