@@ -21,7 +21,7 @@ class OpenAILLM(LLM):
         )
 
         self.model = ChatOpenAI(
-            model="gpt-5o-",
+            model="gpt-5",
             temperature=self.temperature,
             api_key=SecretStr(OpenAIConfig.API_KEY),
         )
