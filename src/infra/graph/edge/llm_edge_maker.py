@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 from src.core.graph.edge.maker import GraphEdgeMaker
@@ -6,6 +5,7 @@ from src.core.graph.edge.model import Edge, EdgeType
 from src.core.graph.node.model import Node, NodeRegistry
 from src.core.llm import LLM
 from src.dependencies.llm import get_llm
+from src.infra.llm.output_parser.edge import EdgeOutputParser
 
 
 _PROMPT_TEMPLATE = """다음은 부마위키 문서입니다.
@@ -25,8 +25,6 @@ _PROMPT_TEMPLATE = """다음은 부마위키 문서입니다.
 
 아래 JSON 형식으로만 응답하세요:
 [{{"target": "문서제목", "type": "관계타입"}}, ...]"""
-# TODO: 랭체인 output parser로 수정 예정
-
 
 class LLMEdgeMaker(GraphEdgeMaker):
 
@@ -41,6 +39,7 @@ class LLMEdgeMaker(GraphEdgeMaker):
         self._node_registry = node_registry
         self._llm = llm or get_llm(template=_PROMPT_TEMPLATE)
         self._known_edges = known_edges or []
+        self._parser = EdgeOutputParser(source=source, node_registry=node_registry)
 
     async def make(self, content: str) -> List[Edge]:
         known_summary = "\n".join(
@@ -60,24 +59,5 @@ class LLMEdgeMaker(GraphEdgeMaker):
             ],
         )
 
-        try:
-            items = json.loads(response)
-        except (json.JSONDecodeError, TypeError):
-            return []
-
-        edges = []
-        for item in items:
-            target_title = item.get("target")
-            edge_type_str = item.get("type")
-            if not target_title or not edge_type_str:
-                continue
-            target = await self._node_registry.get_node(target_title)
-            if target is None:
-                continue
-            try:
-                edge_type = EdgeType(edge_type_str)
-            except ValueError:
-                continue
-            edges.append(Edge(type=edge_type, source=self._source, target=target))
-
+        edges = await self._parser.aparse(response)
         return edges

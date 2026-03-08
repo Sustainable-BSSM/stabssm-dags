@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from pydantic import BaseModel
+
 from src.core.graph.node.model import Node
 
 class EdgeType(StrEnum):
@@ -14,3 +16,7 @@ class Edge:
     type: EdgeType
     source: Node
     target: Node
+
+class EdgeTarget(BaseModel):
+    target: str
+    type: EdgeType
