@@ -17,6 +17,10 @@ class StorageClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_bytes(self, key: str) -> Optional[bytes]:
+        raise NotImplementedError
+
+    @abstractmethod
     def list_keys(self, prefix: str) -> list[str]:
         raise NotImplementedError
 
@@ -35,6 +39,9 @@ class FakeStorageClient(StorageClient):
 
     def get(self, key: str):
         return {}
+
+    def get_bytes(self, key: str) -> Optional[bytes]:
+        return None
 
     def list_keys(self, prefix: str) -> list[str]:
         return []
