@@ -1,15 +1,15 @@
 import os
+
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
-
 with DAG(
-    dag_id="silver__transform_bumawiki_docs",
-    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-    schedule="@monthly",
-    catchup=False,
-    max_active_runs=1,
+        dag_id="silver__transform_bumawiki_docs",
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        schedule="@monthly",
+        catchup=False,
+        max_active_runs=1,
 ):
     transform_and_upload = DockerOperator(
         task_id="transform_and_upload",

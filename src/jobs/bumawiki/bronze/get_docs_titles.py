@@ -1,12 +1,12 @@
 import argparse
 import json
-from datetime import datetime
-from src.common.const.year_established import FIRST_BSSM_YEAR
+
 from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
 from src.common.util.bssm_generation_calculator import BSSMGenerationCalculator
 from src.core.client.storage import StorageClient
 from src.core.jobs import Job
 from src.dependencies.storage_client import get_storage_client
+
 
 class GetDocsTitlesJob(Job):
 

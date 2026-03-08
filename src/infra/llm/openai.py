@@ -2,6 +2,7 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
+
 from src.common.config.openai import OpenAIConfig
 from src.core.llm import LLM
 
@@ -32,4 +33,3 @@ class OpenAILLM(LLM):
     ) -> Any:
         response = await self.model.ainvoke(prompt)
         return response.content
-

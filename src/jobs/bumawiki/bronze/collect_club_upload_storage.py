@@ -9,6 +9,7 @@ from src.dependencies.storage_client import get_storage_client
 from src.infra.crawler.bumawiki.club import BumawikiClubCrawler
 from src.infra.requester.http import HttpRequester
 
+
 class CollectClubJob(Job):
 
     def __init__(

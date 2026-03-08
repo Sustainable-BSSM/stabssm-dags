@@ -1,16 +1,16 @@
 import os
+
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.sdk.definitions.decorators import task
 from pendulum import datetime
 
-
 with DAG(
-    dag_id="bronze__collect_bumawiki_docs",
-    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-    schedule="@monthly",
-    catchup=False,
-    max_active_runs=1,
+        dag_id="bronze__collect_bumawiki_docs",
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        schedule="@monthly",
+        catchup=False,
+        max_active_runs=1,
 ):
     list_docs_titles = DockerOperator(
         task_id="list_docs_titles",
@@ -28,6 +28,7 @@ with DAG(
         },
     )
 
+
     @task
     def make_commands(titles, ds: str = None) -> list:
         import json
@@ -37,6 +38,7 @@ with DAG(
             ["src.jobs.bumawiki.bronze.collect_docs_upload_storage", "--ds", ds, "--title", t]
             for t in titles
         ]
+
 
     commands = make_commands(list_docs_titles.output)
 

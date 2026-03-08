@@ -4,7 +4,7 @@ from src.common.const.year_established import FIRST_BSSM_YEAR
 class BSSMGenerationCalculator:
 
     @staticmethod
-    def calculate(year : int) -> int:
+    def calculate(year: int) -> int:
         """
         부소마고 기수 계산기
         2023년 -> 3기

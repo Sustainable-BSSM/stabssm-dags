@@ -7,13 +7,13 @@ class StorageClient(ABC):
     @abstractmethod
     def upload(
             self,
-            key : str,
-            value : Optional[Any]
+            key: str,
+            value: Optional[Any]
     ):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, key : str):
+    def get(self, key: str):
         raise NotImplementedError
 
     @abstractmethod
@@ -28,11 +28,12 @@ class StorageClient(ABC):
     def upload_bytes(self, key: str, data: bytes, content_type: str = "application/octet-stream"):
         raise NotImplementedError
 
+
 class FakeStorageClient(StorageClient):
     def upload(
             self,
-            key : str,
-            value : Optional[Any]
+            key: str,
+            value: Optional[Any]
     ):
         from pprint import pprint
         pprint(f"Uploading {key} to {value}")
@@ -48,4 +49,3 @@ class FakeStorageClient(StorageClient):
 
     def upload_bytes(self, key: str, data: bytes, content_type: str = "application/octet-stream"):
         pass
-

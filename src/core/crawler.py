@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 
 from src.core.requester import Requester
 
+
 class Crawler(ABC):
     def __init__(
             self,
-            requester : Requester
+            requester: Requester
     ):
         self.requester = requester
 

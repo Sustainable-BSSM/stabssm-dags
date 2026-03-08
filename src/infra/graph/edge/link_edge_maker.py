@@ -12,6 +12,7 @@ _EDGE_TYPE_MAP = {
     NodeType.CLUB: EdgeType.MEMBER_OF,
 }
 
+
 class LinkEdgeMaker(GraphEdgeMaker):
 
     def __init__(self, source: Node, node_registry: NodeRegistry):

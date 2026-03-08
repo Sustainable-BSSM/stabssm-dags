@@ -14,7 +14,6 @@ from src.dependencies.repository.bumawiki_graph import get_bumawiki_graph_reposi
 from src.infra.graph.edge.link_edge_maker import LinkEdgeMaker
 from src.infra.graph.edge.llm_edge_maker import LLMEdgeMaker
 
-
 _DOCS_TYPE_TO_NODE_TYPE = {
     BumaWikiDocsType.STUDENT: NodeType.PERSON,
     BumaWikiDocsType.TEACHER: NodeType.PERSON,

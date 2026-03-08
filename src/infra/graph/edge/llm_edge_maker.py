@@ -7,7 +7,6 @@ from src.core.llm import LLM
 from src.dependencies.llm import get_llm
 from src.infra.llm.output_parser.edge import EdgeOutputParser
 
-
 _PROMPT_TEMPLATE = """다음은 교내 문서입니다.
 
 문서 제목: {title}
@@ -29,6 +28,7 @@ _PROMPT_TEMPLATE = """다음은 교내 문서입니다.
 
 아래 JSON 형식으로만 응답하세요:
 [{{"target": "문서제목", "type": "관계타입"}}, ...]"""
+
 
 class LLMEdgeMaker(GraphEdgeMaker):
 

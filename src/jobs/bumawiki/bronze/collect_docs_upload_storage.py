@@ -1,10 +1,12 @@
 import argparse
+
 from src.core.client.storage import StorageClient
 from src.core.crawler import Crawler
 from src.core.jobs import Job
 from src.dependencies.storage_client import get_storage_client
 from src.infra.crawler.bumawiki.docs import BumawikiDocsCrawler
 from src.infra.requester.http import HttpRequester
+
 
 class CollectDocsJob(Job):
 

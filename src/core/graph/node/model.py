@@ -14,16 +14,17 @@ class NodeType(StrEnum):
 
 @dataclass
 class Node:
-    title : str
-    id : int
-    type : NodeType
-    docs_type : BumaWikiDocsType
-    last_modified_at : datetime
-    enroll : int
+    title: str
+    id: int
+    type: NodeType
+    docs_type: BumaWikiDocsType
+    last_modified_at: datetime
+    enroll: int
+
 
 @dataclass
 class NodeRegistry:
-    nodes : Dict[str, Node] # [node title : node]
+    nodes: Dict[str, Node]  # [node title : node]
 
     async def get_node(self, title: str) -> Node | None:
         return self.nodes.get(title)

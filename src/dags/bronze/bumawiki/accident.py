@@ -1,16 +1,15 @@
 import os
 
 from airflow import DAG
-from pendulum import datetime
 from airflow.providers.docker.operators.docker import DockerOperator
-
+from pendulum import datetime
 
 with DAG(
-    dag_id="bronze__collect_bumawiki_accident",
-    schedule="@monthly",
-    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-    catchup=False,
-    max_active_runs=1,
+        dag_id="bronze__collect_bumawiki_accident",
+        schedule="@monthly",
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        catchup=False,
+        max_active_runs=1,
 ):
     crawl_and_upload = DockerOperator(
         task_id="crawl_and_upload",

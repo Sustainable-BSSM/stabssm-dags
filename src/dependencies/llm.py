@@ -1,4 +1,4 @@
-from src.core.llm import LLM, FakeLLM
+from src.core.llm import LLM
 from src.infra.llm.openai import OpenAILLM
 
 

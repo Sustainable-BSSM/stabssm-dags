@@ -6,6 +6,7 @@ from langchain_core.output_parsers import BaseOutputParser
 from src.core.graph.edge.model import Edge, EdgeTarget
 from src.core.graph.node.model import Node, NodeRegistry
 
+
 class EdgeOutputParser(
     BaseOutputParser[
         List[Edge]

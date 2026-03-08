@@ -1,15 +1,15 @@
 from src.core.crawler import Crawler
 from src.core.requester import Requester
 
+
 class BumawikiClubCrawler(Crawler):
 
     def __init__(
             self,
-            requester : Requester,
+            requester: Requester,
     ):
         super().__init__(requester)
         self.base_url = "https://buma.wiki/api/docs/club"
-
 
     def _fetch(self):
         fetch_data = self.requester.get(url=self.base_url)

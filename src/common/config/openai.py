@@ -1,9 +1,12 @@
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
+
 class OpenAIConfig:
-    API_KEY : str = os.getenv("OPENAI_API_KEY")
+    API_KEY: str = os.getenv("OPENAI_API_KEY")
 
     @classmethod
     def to_env_dict(cls) -> dict:

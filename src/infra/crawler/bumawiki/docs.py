@@ -1,5 +1,3 @@
-
-
 from urllib.parse import quote
 
 from src.core.crawler import Crawler
@@ -10,13 +8,12 @@ class BumawikiDocsCrawler(Crawler):
 
     def __init__(
             self,
-            requester : Requester,
+            requester: Requester,
     ):
         super().__init__(requester)
         self.base_url = "https://buma.wiki/api/docs/find/title/{target}"
 
-
-    def _fetch(self, target : str):
+    def _fetch(self, target: str):
         fetch_data = self.requester.get(
             url=self.base_url.format(target=quote(target, safe=""))
         )

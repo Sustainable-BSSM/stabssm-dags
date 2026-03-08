@@ -9,6 +9,6 @@ class GraphEdgeMaker(ABC):
     @abstractmethod
     async def make(
             self,
-            content : str
+            content: str
     ) -> List[Edge]:
         raise NotImplementedError

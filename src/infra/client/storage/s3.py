@@ -1,21 +1,20 @@
-import json
-from typing import Optional, Any
+from typing import Any
 
-import botocore
+import boto3
 from botocore.exceptions import ClientError
 
 from src.common.config.s3 import S3Config
 from src.common.util.codec import JsonSerializer, JsonDeserializer
 from src.core.client.storage import StorageClient
-import boto3
+
 
 class S3StorageClient(StorageClient):
     def __init__(
             self,
-            region_name : str = S3Config.REGION,
-            aws_access_key_id : str = S3Config.ACCESS_KEY,
-            aws_secret_access_key : str = S3Config.SECRET_KEY,
-            bucket_name : str = S3Config.BUCKET_NAME,
+            region_name: str = S3Config.REGION,
+            aws_access_key_id: str = S3Config.ACCESS_KEY,
+            aws_secret_access_key: str = S3Config.SECRET_KEY,
+            bucket_name: str = S3Config.BUCKET_NAME,
     ):
         self.bucket_name = bucket_name
         self.s3_client = boto3.client(
@@ -24,7 +23,6 @@ class S3StorageClient(StorageClient):
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
         )
-
 
     def upload(
             self,

@@ -1,15 +1,15 @@
 import os
+
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
-
 with DAG(
-    dag_id="gold__build_bumawiki_docs_graph",
-    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-    schedule="@monthly",
-    catchup=False,
-    max_active_runs=1,
+        dag_id="gold__build_bumawiki_docs_graph",
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        schedule="@monthly",
+        catchup=False,
+        max_active_runs=1,
 ):
     # wait_for_silver = ExternalTaskSensor(
     #     task_id="wait_for_silver",
