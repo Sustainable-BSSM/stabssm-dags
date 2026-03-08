@@ -84,12 +84,15 @@ class BuildDocsGraphJob(Job):
 
     async def _run(self, ds: str):
         # 1. silver parquet 로드
-        key = f"silver/bumawiki/docs/dt={ds}/part-0000.parquet"
-        raw = self._storage.get_bytes(key)
-        if not raw:
+        prefix = f"silver/bumawiki/docs/dt={ds}/"
+        keys = self._storage.list_keys(prefix)
+        if not keys:
             return
 
-        df = pl.read_parquet(io.BytesIO(raw))
+        df = pl.concat([
+            pl.read_parquet(io.BytesIO(self._storage.get_bytes(key)))
+            for key in keys
+        ])
         rows = df.to_dicts()
 
         # 2. 노드 생성 + NodeRegistry 구성
