@@ -9,6 +9,16 @@ class DuckDBBumaWikiDocsRawRepository(BumaWikiDocsRawRepository):
         self._bucket = bucket
         self._conn = create_conn()
 
+    def exists(self, ds: str, title: str) -> bool:
+        try:
+            result = self._conn.execute(f"""
+                SELECT COUNT(*) FROM read_json_auto('s3://{self._bucket}/bronze/bumawiki/docs/dt={ds}/*.json')
+                WHERE title = '{title}'
+            """).fetchone()
+            return result[0] > 0
+        except Exception:
+            return False
+
     def save(self, ds: str) -> None:
         self._conn.execute(f"""
             COPY (
