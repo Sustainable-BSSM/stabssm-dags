@@ -12,9 +12,12 @@ class DuckDBBumaWikiDocsRepository(BumaWikiDocsRepository):
         self._conn = create_conn()
 
     async def get(self, ds: str) -> pl.DataFrame:
-        return self._conn.execute(f"""
-            SELECT * FROM read_parquet('s3://{self._bucket}/silver/bumawiki/docs/dt={ds}/*.parquet')
-        """).pl()
+        try:
+            return self._conn.execute(f"""
+                SELECT * FROM read_parquet('s3://{self._bucket}/silver/bumawiki/docs/dt={ds}/*.parquet')
+            """).pl()
+        except Exception:
+            return pl.DataFrame()
 
     def save(self, df: pl.DataFrame, ds: str) -> None:
         self._conn.register("silver_df", df)

@@ -2,6 +2,7 @@ import os
 
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.providers.standard.sensors.external_task import ExternalTaskSensor
 from pendulum import datetime
 
 with DAG(
@@ -11,12 +12,12 @@ with DAG(
         catchup=False,
         max_active_runs=1,
 ):
-    # wait_for_silver = ExternalTaskSensor(
-    #     task_id="wait_for_silver",
-    #     external_dag_id="silver__transform_bumawiki_docs",
-    #     external_task_id=None,
-    #     mode="reschedule",
-    # )
+    wait_for_silver = ExternalTaskSensor(
+        task_id="wait_for_silver",
+        external_dag_id="silver__transform_bumawiki_docs",
+        external_task_id=None,
+        mode="reschedule",
+    )
 
     build_graph = DockerOperator(
         task_id="build_graph",
@@ -32,3 +33,5 @@ with DAG(
             "S3_REGION": os.environ.get("S3_REGION"),
         },
     )
+
+    wait_for_silver >> build_graph
