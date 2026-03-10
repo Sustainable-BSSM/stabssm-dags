@@ -1,50 +1,33 @@
 import argparse
 
-from src.common.config.s3 import S3Config
 from src.core.jobs import Job
-from src.infra.duckdb import create_conn
+from src.core.repository.bumawiki.docs import BumaWikiDocsRepository
+from src.core.repository.bumawiki.docs_raw import BumaWikiDocsRawRepository
+from src.dependencies.repository.bumawiki_docs import get_bumawiki_docs_repository
+from src.dependencies.repository.bumawiki_docs_raw import get_bumawiki_docs_raw_repository
 
 
 class TransformDocsDetailToParquetJob(Job):
 
-    def __init__(self, bucket: str = S3Config.BUCKET_NAME):
-        self._bucket = bucket
-        self._conn = create_conn()
+    def __init__(
+            self,
+            raw_repo: BumaWikiDocsRawRepository,
+            docs_repo: BumaWikiDocsRepository,
+    ):
+        self._raw_repo = raw_repo
+        self._docs_repo = docs_repo
 
     def __call__(self, ds: str):
-        df = self._conn.execute(f"""
-            SELECT
-                id,
-                title,
-                contents,
-                docsType       AS docstype,
-                lastModifiedAt AS lastmodifiedat,
-                enroll,
-                TO_JSON(contributors) AS contributors,
-                status,
-                version,
-                thumbnail,
-                docsDetail     AS docsdetail
-            FROM read_json(
-                's3://{self._bucket}/bronze/bumawiki/docs/dt={ds}/*',
-                format       = 'newline_delimited',
-                auto_detect  = true
-            )
-        """).pl()
-
+        df = self._raw_repo.read(ds)
         if df.is_empty():
             return
-
-        self._conn.register("silver_df", df)
-        self._conn.execute(f"""
-            COPY silver_df
-            TO 's3://{self._bucket}/silver/bumawiki/docs/dt={ds}/part-0000.parquet'
-            (FORMAT PARQUET, COMPRESSION SNAPPY)
-        """)
+        self._docs_repo.save(df, ds)
 
 
 def run_job(ds: str):
-    job = TransformDocsDetailToParquetJob()
+    raw_repo = get_bumawiki_docs_raw_repository()
+    docs_repo = get_bumawiki_docs_repository()
+    job = TransformDocsDetailToParquetJob(raw_repo=raw_repo, docs_repo=docs_repo)
     job(ds=ds)
 
 

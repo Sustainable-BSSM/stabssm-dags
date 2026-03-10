@@ -13,4 +13,5 @@ dependencies = [
     "langchain-openai>=1.1.10",
     "playwright>=1.58.0",
     "polars>=1.38.1",
+    "neo4j>=5.0.0",
 ]

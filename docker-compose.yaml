@@ -29,6 +29,8 @@ x-airflow-common: &airflow-common
     - ./plugins:/opt/airflow/plugins
     - /var/run/docker.sock:/var/run/docker.sock
   user: "${AIRFLOW_UID:-50000}:0"
+  networks:
+    - stabssm-net
   depends_on:
     - postgres
 
@@ -42,6 +44,20 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      - stabssm-net
+
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - stabssm-net
 
   airflow-init:
     <<: *airflow-common
@@ -79,3 +95,8 @@ services:
 
 volumes:
   postgres-db-volume:
+  neo4j-data:
+
+networks:
+  stabssm-net:
+    driver: bridge

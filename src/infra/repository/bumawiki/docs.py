@@ -15,3 +15,11 @@ class DuckDBBumaWikiDocsRepository(BumaWikiDocsRepository):
         return self._conn.execute(f"""
             SELECT * FROM read_parquet('s3://{self._bucket}/silver/bumawiki/docs/dt={ds}/*.parquet')
         """).pl()
+
+    def save(self, df: pl.DataFrame, ds: str) -> None:
+        self._conn.register("silver_df", df)
+        self._conn.execute(f"""
+            COPY silver_df
+            TO 's3://{self._bucket}/silver/bumawiki/docs/dt={ds}/part-0000.parquet'
+            (FORMAT PARQUET, COMPRESSION SNAPPY)
+        """)

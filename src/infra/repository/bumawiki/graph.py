@@ -51,3 +51,13 @@ class DuckDBBumaWikiGraphRepository(BumaWikiGraphRepository):
             TO 's3://{self._bucket}/gold/bumawiki/docs/edges/dt={ds}/part-0000.parquet'
             (FORMAT PARQUET, COMPRESSION SNAPPY)
         """)
+
+    def get_nodes(self, ds: str) -> pl.DataFrame:
+        return self._conn.execute(f"""
+            SELECT * FROM read_parquet('s3://{self._bucket}/gold/bumawiki/docs/nodes/dt={ds}/*.parquet')
+        """).pl()
+
+    def get_edges(self, ds: str) -> pl.DataFrame:
+        return self._conn.execute(f"""
+            SELECT * FROM read_parquet('s3://{self._bucket}/gold/bumawiki/docs/edges/dt={ds}/*.parquet')
+        """).pl()
