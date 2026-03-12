@@ -31,6 +31,8 @@ def _dedup_edges(edges: List[Edge]) -> List[Edge]:
     seen = set()
     result = []
     for edge in edges:
+        if edge.source.id == edge.target.id:
+            continue
         key = (edge.type, edge.source.id, edge.target.id)
         if key not in seen:
             seen.add(key)
