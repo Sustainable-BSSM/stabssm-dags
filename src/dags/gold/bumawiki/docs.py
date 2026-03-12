@@ -1,24 +1,20 @@
 import os
 
 from airflow import DAG
+from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
-from airflow.providers.standard.sensors.external_task import ExternalTaskSensor
 from pendulum import datetime
+
+BUMAWIKI_SILVER_DOCS = Dataset("bumawiki/silver/docs")
+BUMAWIKI_GOLD_DOCS_GRAPH = Dataset("bumawiki/gold/docs-graph")
 
 with DAG(
         dag_id="gold__build_bumawiki_docs_graph",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-        schedule="@monthly",
+        schedule=[BUMAWIKI_SILVER_DOCS],
         catchup=False,
         max_active_runs=1,
 ):
-    # wait_for_silver = ExternalTaskSensor(
-    #     task_id="wait_for_silver",
-    #     external_dag_id="silver__transform_bumawiki_docs",
-    #     external_task_id=None,
-    #     mode="reschedule",
-    # )
-
     build_graph = DockerOperator(
         task_id="build_graph",
         image="stabssm-jobs:latest",
@@ -26,6 +22,7 @@ with DAG(
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
+        outlets=[BUMAWIKI_GOLD_DOCS_GRAPH],
         environment={
             "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
             "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
@@ -34,5 +31,3 @@ with DAG(
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
         },
     )
-
-    # wait_for_silver >> build_graph
