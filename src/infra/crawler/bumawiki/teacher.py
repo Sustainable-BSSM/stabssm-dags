@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from src.common.enum.bumawiki.teacher_type import TeacherType
+from src.core.bumawiki.model import TeacherType
 from src.core.crawler import Crawler
 from src.core.requester import Requester
 
