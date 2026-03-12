@@ -1,7 +1,10 @@
 import argparse
 import asyncio
 import json
+import logging
 from typing import List
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
 from src.core.graph.edge.model import Edge, EdgeType
@@ -9,6 +12,8 @@ from src.core.graph.node.model import Node, NodeRegistry, NodeType
 from src.core.jobs import Job
 from src.core.repository.bumawiki.docs import BumaWikiDocsRepository
 from src.core.repository.bumawiki.graph import BumaWikiGraphRepository
+
+logger = logging.getLogger(__name__)
 from src.dependencies.repository.bumawiki_docs import get_bumawiki_docs_repository
 from src.dependencies.repository.bumawiki_graph import get_bumawiki_graph_repository
 from src.infra.graph.edge.link_edge_maker import LinkEdgeMaker
@@ -34,7 +39,7 @@ def _dedup_edges(edges: List[Edge]) -> List[Edge]:
 
 
 def _row_to_node(row: dict) -> Node:
-    docs_type = BumaWikiDocsType(row["docstype"])
+    docs_type = BumaWikiDocsType(row["docstype"].lower())
     return Node(
         id=row["id"],
         title=row["title"],
@@ -79,10 +84,14 @@ class BuildDocsGraphJob(Job):
         asyncio.run(self._run(ds))
 
     async def _run(self, ds: str):
+        logger.info(f"[BuildDocsGraphJob] start ds={ds}")
+
         # 1. silver parquet 로드
         df = await self._repository.get(ds)
         if df.is_empty():
+            logger.warning(f"[BuildDocsGraphJob] silver df is empty for ds={ds}, skipping")
             return
+        logger.info(f"[BuildDocsGraphJob] columns={df.columns}")
         rows = df.to_dicts()
 
         # 2. 노드 생성 + NodeRegistry 구성
@@ -120,8 +129,10 @@ class BuildDocsGraphJob(Job):
         all_edges = _dedup_edges(all_edges)
 
         # 4. parquet 직렬화 + 업로드
+        logger.info(f"[BuildDocsGraphJob] saving {len(nodes)} nodes, {len(all_edges)} edges for ds={ds}")
         self._graph_repository.save_nodes(nodes, ds)
         self._graph_repository.save_edges(all_edges, ds)
+        logger.info(f"[BuildDocsGraphJob] done")
 
 
 def run_job(ds: str):

@@ -12,12 +12,12 @@ with DAG(
         catchup=False,
         max_active_runs=1,
 ):
-    wait_for_silver = ExternalTaskSensor(
-        task_id="wait_for_silver",
-        external_dag_id="silver__transform_bumawiki_docs",
-        external_task_id=None,
-        mode="reschedule",
-    )
+    # wait_for_silver = ExternalTaskSensor(
+    #     task_id="wait_for_silver",
+    #     external_dag_id="silver__transform_bumawiki_docs",
+    #     external_task_id=None,
+    #     mode="reschedule",
+    # )
 
     build_graph = DockerOperator(
         task_id="build_graph",
@@ -34,4 +34,4 @@ with DAG(
         },
     )
 
-    wait_for_silver >> build_graph
+    # wait_for_silver >> build_graph
