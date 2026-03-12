@@ -70,6 +70,28 @@ async def _build_edges_for_node(
     return _dedup_edges(link_edges + llm_edges)
 
 
+async def _collect_edges_for_node(
+        node: Node,
+        row: dict,
+        registry: NodeRegistry,
+) -> List[Edge]:
+    content = row.get("contents", "")
+    edges = await _build_edges_for_node(node, content, registry)
+
+    contributors = [Contributor.from_dict(c) for c in json.loads(row.get("contributors", "[]"))]
+    for contributor in contributors:
+        node_ = await registry.get_node(contributor.name)
+        if node_ is None:
+            continue
+        edges.append(Edge(
+            type=EdgeType.DOCS_CONTRIBUTION,
+            source=node_,
+            target=node,
+        ))
+
+    return edges
+
+
 class BuildDocsGraphJob(Job):
 
     def __init__(
@@ -104,29 +126,12 @@ class BuildDocsGraphJob(Job):
 
         registry = NodeRegistry(nodes={n.title: n for n in nodes})
 
-        # 3. 노드별 edge 수집
-        all_edges: List[Edge] = []
-        for node in nodes:
-            row = row_map[node.title]
-            content = row.get("contents", "")
-
-            # 링크 기반 + LLM 기반 edge
-            edges = await _build_edges_for_node(node, content, registry)
-            all_edges.extend(edges)
-
-            # DOCS_CONTRIBUTION: contributors → 문서 노드
-            contributors = [Contributor.from_dict(c) for c in json.loads(row.get("contributors", "[]"))]
-            for contributor in contributors:
-                node_ = await registry.get_node(contributor.name)
-                if node_ is None:
-                    continue
-                all_edges.append(Edge(
-                    type=EdgeType.DOCS_CONTRIBUTION,
-                    source=node_,
-                    target=node,
-                ))
-
-        all_edges = _dedup_edges(all_edges)
+        # 3. 노드별 edge 수집 (병렬)
+        results = await asyncio.gather(*[
+            _collect_edges_for_node(node, row_map[node.title], registry)
+            for node in nodes
+        ])
+        all_edges = _dedup_edges([edge for edges in results for edge in edges])
 
         # 4. parquet 직렬화 + 업로드
         logger.info(f"[BuildDocsGraphJob] saving {len(nodes)} nodes, {len(all_edges)} edges for ds={ds}")
