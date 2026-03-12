@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 
-from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
+from src.core.bumawiki.model import BumaWikiDocsType
 from src.core.graph.node.model import Node, NodeRegistry, NodeType
 from src.infra.graph.edge.llm_edge_maker import LLMEdgeMaker
 

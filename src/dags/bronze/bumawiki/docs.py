@@ -2,7 +2,6 @@ import os
 
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
-from airflow.sdk.definitions.decorators import task
 from pendulum import datetime
 
 with DAG(
@@ -28,23 +27,10 @@ with DAG(
         },
     )
 
-
-    @task
-    def make_commands(titles, ds: str = None) -> list:
-        import json
-        if isinstance(titles, str):
-            titles = json.loads(titles)
-        return [
-            ["src.jobs.bumawiki.bronze.collect_docs_upload_storage", "--ds", ds, "--title", t]
-            for t in titles
-        ]
-
-
-    commands = make_commands(list_docs_titles.output)
-
-    crawl_and_upload = DockerOperator.partial(
+    crawl_and_upload = DockerOperator(
         task_id="crawl_and_write",
         image="stabssm-jobs:latest",
+        command=["src.jobs.bumawiki.bronze.collect_docs_upload_storage", "--ds", "{{ ds }}", "--titles", "{{ ti.xcom_pull(task_ids='list_docs_titles') }}"],
         docker_url="unix://var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
@@ -54,6 +40,6 @@ with DAG(
             "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
             "S3_REGION": os.environ.get("S3_REGION"),
         },
-    ).expand(command=commands)
+    )
 
-    list_docs_titles >> commands >> crawl_and_upload
+    list_docs_titles >> crawl_and_upload
