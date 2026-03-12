@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Dict
 
-from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
+from src.core.bumawiki.model import BumaWikiDocsType
 
 
 class NodeType(StrEnum):

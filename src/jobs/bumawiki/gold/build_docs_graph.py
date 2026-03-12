@@ -6,7 +6,7 @@ from typing import List
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
+from src.core.bumawiki.model import BumaWikiDocsType, Contributor
 from src.core.graph.edge.model import Edge, EdgeType
 from src.core.graph.node.model import Node, NodeRegistry, NodeType
 from src.core.jobs import Job
@@ -115,14 +115,14 @@ class BuildDocsGraphJob(Job):
             all_edges.extend(edges)
 
             # DOCS_CONTRIBUTION: contributors → 문서 노드
-            contributors: List[str] = json.loads(row.get("contributors", "[]"))
-            for contributor_title in contributors:
-                contributor = await registry.get_node(contributor_title)
-                if contributor is None:
+            contributors = [Contributor.from_dict(c) for c in json.loads(row.get("contributors", "[]"))]
+            for contributor in contributors:
+                node_ = await registry.get_node(contributor.name)
+                if node_ is None:
                     continue
                 all_edges.append(Edge(
                     type=EdgeType.DOCS_CONTRIBUTION,
-                    source=contributor,
+                    source=node_,
                     target=node,
                 ))
 

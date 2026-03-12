@@ -1,7 +1,7 @@
 import argparse
 import json
 
-from src.common.enum.bumawiki.docs_type import BumaWikiDocsType
+from src.core.bumawiki.model import BumaWikiDocsType
 from src.common.util.bssm_generation_calculator import BSSMGenerationCalculator
 from src.core.client.storage import StorageClient
 from src.core.jobs import Job
