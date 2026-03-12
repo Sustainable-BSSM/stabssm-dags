@@ -25,19 +25,11 @@ class LoadGraphToNeo4jJob(Job):
         self._edge_repo = edge_repo
 
     def __call__(self, ds: str):
-        db_name = f"bumawiki-{ds}"
-
         nodes_df = self._graph_repo.get_nodes(ds)
         edges_df = self._graph_repo.get_edges(ds)
 
-        self._node_repo.save(
-            df=nodes_df,
-            db_name=db_name
-        )
-        self._edge_repo.save(
-            df=edges_df,
-            db_name=db_name
-        )
+        self._node_repo.save(df=nodes_df, ds=ds)
+        self._edge_repo.save(df=edges_df, ds=ds)
 
 
 def run_job(ds: str):
