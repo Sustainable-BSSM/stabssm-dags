@@ -6,5 +6,5 @@ import polars as pl
 class BumaWikiNeo4jNodeRepository(ABC):
 
     @abstractmethod
-    def save(self, df: pl.DataFrame, db_name: str) -> None:
+    def save(self, df: pl.DataFrame, ds: str) -> None:
         raise NotImplementedError
