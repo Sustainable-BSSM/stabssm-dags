@@ -5,8 +5,8 @@ from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
-BUMAWIKI_BRONZE_DOCS = Dataset("bumawiki/bronze/docs")
-BUMAWIKI_SILVER_DOCS = Dataset("bumawiki/silver/docs")
+BUMAWIKI_BRONZE_DOCS = Dataset("s3://stabssm/bumawiki/bronze/docs")
+BUMAWIKI_SILVER_DOCS = Dataset("s3://bumawiki/silver/docs")
 
 with DAG(
         dag_id="silver__transform_bumawiki_docs",

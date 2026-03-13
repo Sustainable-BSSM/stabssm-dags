@@ -2,7 +2,6 @@ import re
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-
 class LLM(ABC):
 
     def __init__(
@@ -28,10 +27,13 @@ class LLM(ABC):
         return await self._call(prompt)
 
     @abstractmethod
-    async def _call(self, prompt: str) -> Any:
+    async def _call(self, prompt: str | List[str]) -> Any:
         raise NotImplementedError
-
 
 class FakeLLM(LLM):
     async def _call(self, prompt: str) -> str:
         return prompt
+
+class BatchLLM(LLM):
+    async def _call(self, prompt: str) -> str:
+        ...
