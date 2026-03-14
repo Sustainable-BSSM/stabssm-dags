@@ -7,9 +7,9 @@ class Requester(ABC):
     @abstractmethod
     def get(
             self,
-            url : str,
-            headers : Optional[Dict[str, Any]] = None,
-            params : Optional[Dict[str, Any]] = None,
-            cookies : Optional[Dict[str, Any]] = None,
+            url: str,
+            headers: Optional[Dict[str, Any]] = None,
+            params: Optional[Dict[str, Any]] = None,
+            cookies: Optional[Dict[str, Any]] = None,
     ):
         raise NotImplementedError

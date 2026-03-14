@@ -1,52 +1,33 @@
 import argparse
-import io
-import json
 
-import polars as pl
-
-from src.common.config.s3 import S3Config
-from src.core.client.storage import StorageClient
 from src.core.jobs import Job
-from src.dependencies.storage_client import get_storage_client
+from src.core.repository.bumawiki.docs import BumaWikiDocsRepository
+from src.core.repository.bumawiki.docs_raw import BumaWikiDocsRawRepository
+from src.dependencies.repository.bumawiki_docs import get_bumawiki_docs_repository
+from src.dependencies.repository.bumawiki_docs_raw import get_bumawiki_docs_raw_repository
 
 
 class TransformDocsDetailToParquetJob(Job):
 
-    def __init__(self, storage_client: StorageClient, bucket_name: str = S3Config.BUCKET_NAME):
-        self.storage_client = storage_client
-        self.bucket = bucket_name
+    def __init__(
+            self,
+            raw_repo: BumaWikiDocsRawRepository,
+            docs_repo: BumaWikiDocsRepository,
+    ):
+        self._raw_repo = raw_repo
+        self._docs_repo = docs_repo
 
     def __call__(self, ds: str):
-        prefix = f"bronze/bumawiki/docs/dt={ds}/"
-        keys = self.storage_client.list_keys(prefix=prefix)
-
-        if not keys:
+        df = self._raw_repo.read(ds)
+        if df.is_empty():
             return
-
-        rows = []
-        for key in keys:
-            data = self.storage_client.get(key)
-            if not data:
-                continue
-            doc = data[0]
-            doc["contributors"] = json.dumps(doc.get("contributors", []), ensure_ascii=False)
-            rows.append(doc)
-
-        if not rows:
-            return
-
-        df = pl.DataFrame(rows, infer_schema_length=len(rows))
-
-        buf = io.BytesIO()
-        df.write_parquet(buf, compression="snappy")
-
-        key = f"silver/bumawiki/docs/dt={ds}/part-0000.parquet"
-        self.storage_client.upload_bytes(key=key, data=buf.getvalue())
+        self._docs_repo.save(df, ds)
 
 
 def run_job(ds: str):
-    storage_client = get_storage_client()
-    job = TransformDocsDetailToParquetJob(storage_client=storage_client)
+    raw_repo = get_bumawiki_docs_raw_repository()
+    docs_repo = get_bumawiki_docs_repository()
+    job = TransformDocsDetailToParquetJob(raw_repo=raw_repo, docs_repo=docs_repo)
     job(ds=ds)
 
 

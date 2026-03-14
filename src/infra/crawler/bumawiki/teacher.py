@@ -1,17 +1,18 @@
 from collections import defaultdict
-from src.common.enum.bumawiki.teacher_type import TeacherType
+
+from src.core.bumawiki.model import TeacherType
 from src.core.crawler import Crawler
 from src.core.requester import Requester
+
 
 class BumawikiTeacherCrawler(Crawler):
 
     def __init__(
             self,
-            requester : Requester,
+            requester: Requester,
     ):
         super().__init__(requester)
         self.base_url = "https://buma.wiki/api/docs/{teacher}"
-
 
     def _fetch(self):
         dict_teachers = defaultdict(list)

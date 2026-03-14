@@ -1,4 +1,4 @@
-from src.core.client.storage import StorageClient, FakeStorageClient
+from src.core.client.storage import StorageClient
 from src.infra.client.storage.s3 import S3StorageClient
 
 

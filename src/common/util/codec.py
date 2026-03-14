@@ -10,6 +10,7 @@ class Serializer(Protocol):
     def serialize(obj: Any) -> Any:
         raise NotImplementedError
 
+
 class Deserializer(Protocol):
 
     @staticmethod
@@ -17,12 +18,14 @@ class Deserializer(Protocol):
     def deserialize(serialized_obj: Any) -> Any:
         raise NotImplementedError
 
+
 class JsonSerializer:
 
     @staticmethod
     def serialize(obj: Any) -> Any:
         serialized_obj = json.dumps(obj, ensure_ascii=False)
         return serialized_obj
+
 
 class JsonDeserializer:
 

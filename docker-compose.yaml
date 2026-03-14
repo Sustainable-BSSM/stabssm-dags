@@ -17,6 +17,10 @@ x-airflow-common-env: &airflow-common-env
   S3_SECRET_KEY: ${S3_SECRET_KEY}
   S3_BUCKET_NAME: ${S3_BUCKET_NAME}
   S3_REGION: ${S3_REGION}
+  OPENAI_API_KEY: ${OPENAI_API_KEY}
+  NEO4J_URI: ${NEO4J_URI}
+  NEO4J_USER: ${NEO4J_USER}
+  NEO4J_PASSWORD: ${NEO4J_PASSWORD}
   _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-docker>=4.5.2 apache-airflow-providers-fab>=1.2.0
 
 x-airflow-common: &airflow-common
@@ -29,6 +33,8 @@ x-airflow-common: &airflow-common
     - ./plugins:/opt/airflow/plugins
     - /var/run/docker.sock:/var/run/docker.sock
   user: "${AIRFLOW_UID:-50000}:0"
+  networks:
+    - stabssm-net
   depends_on:
     - postgres
 
@@ -42,6 +48,20 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      - stabssm-net
+
+  neo4j:
+    image: neo4j:5
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - stabssm-net
 
   airflow-init:
     <<: *airflow-common
@@ -79,3 +99,8 @@ services:
 
 volumes:
   postgres-db-volume:
+  neo4j-data:
+
+networks:
+  stabssm-net:
+    driver: bridge
