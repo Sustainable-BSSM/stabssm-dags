@@ -19,7 +19,7 @@ with DAG(
         task_id="build_graph",
         image="stabssm-jobs:latest",
         command="src.jobs.bumawiki.gold.build_docs_graph --ds {{ ds }}",
-        docker_url="unix://var/run/docker.sock",
+        docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
         outlets=[BUMAWIKI_GOLD_DOCS_GRAPH],

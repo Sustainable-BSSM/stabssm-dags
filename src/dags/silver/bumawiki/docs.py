@@ -5,8 +5,8 @@ from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
 
-BUMAWIKI_BRONZE_DOCS = Dataset("s3://stabssm/bumawiki/bronze/docs")
-BUMAWIKI_SILVER_DOCS = Dataset("s3://bumawiki/silver/docs")
+BUMAWIKI_BRONZE_DOCS = Dataset("bumawiki/bronze/docs")
+BUMAWIKI_SILVER_DOCS = Dataset("bumawiki/silver/docs")
 
 with DAG(
         dag_id="silver__transform_bumawiki_docs",
@@ -19,7 +19,7 @@ with DAG(
         task_id="transform_and_upload",
         image="stabssm-jobs:latest",
         command="src.jobs.bumawiki.silver.transform_docs_detail_parquet --ds {{ ds }}",
-        docker_url="unix://var/run/docker.sock",
+        docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
         outlets=[BUMAWIKI_SILVER_DOCS],

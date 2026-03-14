@@ -18,7 +18,7 @@ with DAG(
         task_id="load_to_neo4j",
         image="stabssm-jobs:latest",
         command="src.jobs.bumawiki.gold.load_graph_to_neo4j --ds {{ ds }}",
-        docker_url="unix://var/run/docker.sock",
+        docker_url="unix:///var/run/docker.sock",
         network_mode="stabssm-dags_stabssm-net",
         mount_tmp_dir=False,
         environment={
