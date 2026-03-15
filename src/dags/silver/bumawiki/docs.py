@@ -18,7 +18,7 @@ with DAG(
     transform_and_upload = DockerOperator(
         task_id="transform_and_upload",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.silver.transform_docs_detail_parquet --ds {{ ds }}",
+        command="src.jobs.bumawiki.silver.transform_docs_detail_parquet --ds {{ data_interval_start.strftime('%Y-%m-%d') }}",
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
