@@ -15,7 +15,7 @@ def run_job():
          "category": item["category"], "year": item.get("year")}
         for items in crawled_data.values() for item in items
     ]
-    print(json.dumps(docs, ensure_ascii=False))
+    print(json.dumps(docs, ensure_ascii=True))
 
 
 if __name__ == "__main__":
