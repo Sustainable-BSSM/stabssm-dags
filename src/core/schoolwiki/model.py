@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from src.core.bumawiki.model import BumaWikiDocsType
+
 
 class SchoolwikiCategory(str, Enum):
     STUDENT = "STUDENT"
@@ -12,6 +14,15 @@ class SchoolwikiCategory(str, Enum):
     def url_slug(self) -> str:
         """RSC URL에서 사용하는 frontendCategory 값."""
         return self.value.lower()
+
+    def to_bumawiki_docs_type(self) -> BumaWikiDocsType:
+        mapping = {
+            SchoolwikiCategory.STUDENT: BumaWikiDocsType.STUDENT,
+            SchoolwikiCategory.TEACHER: BumaWikiDocsType.TEACHER,
+            SchoolwikiCategory.INCIDENT: BumaWikiDocsType.ACCIDENT,
+            SchoolwikiCategory.CLUB: BumaWikiDocsType.CLUB,
+        }
+        return mapping[self]
 
 
 @dataclass
