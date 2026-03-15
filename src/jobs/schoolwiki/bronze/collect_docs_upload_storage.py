@@ -64,19 +64,20 @@ class CollectSchoolwikiDocsJob(Job):
         logger.info("모든 문서 수집 완료")
 
     async def _run(self, ds: str, docs: list[dict]):
+        uploaded_ids = self._fetch_uploaded_ids(ds)
         semaphore = Semaphore(40)
-        await gather(*[self._collect(ds, doc, semaphore) for doc in docs])
+        await gather(*[self._collect(ds, doc, semaphore, uploaded_ids) for doc in docs])
 
-    async def _collect(self, ds: str, doc_meta: dict, semaphore: Semaphore):
+    async def _collect(self, ds: str, doc_meta: dict, semaphore: Semaphore, uploaded_ids: set[str]):
         slug = doc_meta["slug"]
         doc_id = doc_meta["id"]
         title = doc_meta["title"]
 
-        async with semaphore:
-            if self._exists(ds, doc_id):
-                logger.info(f"[SKIP] {title} ({slug})")
-                return
+        if doc_id in uploaded_ids:
+            logger.info(f"[SKIP] {title} ({slug})")
+            return
 
+        async with semaphore:
             logger.info(f"[START] {title} ({slug})")
             detail = await to_thread(self.detail_crawler.run, slug)
 
@@ -87,20 +88,19 @@ class CollectSchoolwikiDocsJob(Job):
             )
             logger.info(f"[DONE] {title} ({slug})")
 
-    def _exists(self, ds: str, doc_id: str) -> bool:
+    def _fetch_uploaded_ids(self, ds: str) -> set[str]:
         try:
             from src.common.config.s3 import S3Config
             from src.infra.duckdb import create_conn
             conn = create_conn()
             result = conn.execute(f"""
-                SELECT COUNT(*) FROM read_json_auto(
+                SELECT id FROM read_json_auto(
                     's3://{S3Config.BUCKET_NAME}/bronze/bumawiki/docs/dt={ds}/*.json'
                 )
-                WHERE id = '{doc_id}'
-            """).fetchone()
-            return result[0] > 0
+            """).fetchall()
+            return {row[0] for row in result}
         except Exception:
-            return False
+            return set()
 
 
 def run_job(ds: str, docs: list[dict]):
