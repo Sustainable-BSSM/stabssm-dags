@@ -1,5 +1,5 @@
 import argparse
-from asyncio import gather, run, Semaphore, to_thread
+from asyncio import gather, run, Semaphore, sleep, to_thread
 import json
 import logging
 
@@ -78,15 +78,23 @@ class CollectSchoolwikiDocsJob(Job):
             return
 
         async with semaphore:
-            logger.info(f"[START] {title} ({slug})")
-            detail = await to_thread(self.detail_crawler.run, slug)
+            for attempt in range(3):
+                try:
+                    logger.info(f"[START] {title} ({slug})")
+                    detail = await to_thread(self.detail_crawler.run, slug)
 
-            record = _to_bumawiki_schema(doc_meta, detail or {})
-            self.storage_client.upload(
-                key=f"bronze/bumawiki/docs/dt={ds}/docs-{doc_id}-{title}.json",
-                value=[record],
-            )
-            logger.info(f"[DONE] {title} ({slug})")
+                    record = _to_bumawiki_schema(doc_meta, detail or {})
+                    self.storage_client.upload(
+                        key=f"bronze/bumawiki/docs/dt={ds}/docs-{doc_id}-{title}.json",
+                        value=[record],
+                    )
+                    logger.info(f"[DONE] {title} ({slug})")
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        await sleep(2 ** attempt)
+                    else:
+                        logger.warning(f"[FAIL] {title} ({slug}): {e}")
 
     def _fetch_uploaded_ids(self, ds: str) -> set[str]:
         try:
