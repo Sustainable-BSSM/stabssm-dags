@@ -64,7 +64,7 @@ class CollectSchoolwikiDocsJob(Job):
         logger.info("모든 문서 수집 완료")
 
     async def _run(self, ds: str, docs: list[dict]):
-        semaphore = Semaphore(10)
+        semaphore = Semaphore(40)
         await gather(*[self._collect(ds, doc, semaphore) for doc in docs])
 
     async def _collect(self, ds: str, doc_meta: dict, semaphore: Semaphore):
