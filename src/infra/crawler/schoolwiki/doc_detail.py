@@ -19,7 +19,7 @@ class SchoolwikiDocDetailCrawler(Crawler):
         return resp
 
     def _parse(self, fetched_data) -> dict | None:
-        text = fetched_data.text
+        text = fetched_data.content.decode('utf-8')
         # RSC 스트림에서 {"content":{"type":"doc",...},"title":"...",...} 패턴 추출
         key = '{"content":{"type":"doc"'
         idx = text.find(key)

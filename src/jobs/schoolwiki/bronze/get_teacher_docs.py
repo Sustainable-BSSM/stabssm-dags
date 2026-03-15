@@ -10,7 +10,11 @@ def run_job():
     crawler = SchoolwikiDocsCrawler(requester=requester, category=SchoolwikiCategory.TEACHER)
     crawled_data = crawler.run()
 
-    docs = [item for items in crawled_data.values() for item in items]
+    docs = [
+        {"id": item["id"], "slug": item["slug"], "title": item["title"],
+         "category": item["category"], "year": item.get("year")}
+        for items in crawled_data.values() for item in items
+    ]
     print(json.dumps(docs, ensure_ascii=False))
 
 

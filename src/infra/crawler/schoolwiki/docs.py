@@ -23,7 +23,7 @@ class SchoolwikiDocsCrawler(Crawler):
         return resp
 
     def _parse(self, fetched_data) -> dict[str, list[dict]]:
-        text = fetched_data.text
+        text = fetched_data.content.decode('utf-8')
         docs = self._extract_documents(text)
         return self._group_by_year(docs)
 
