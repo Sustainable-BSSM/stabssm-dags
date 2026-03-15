@@ -1,5 +1,5 @@
 import argparse
-import asyncio
+from asyncio import gather, run, Semaphore, to_thread
 import json
 import logging
 
@@ -60,30 +60,32 @@ class CollectSchoolwikiDocsJob(Job):
 
     def __call__(self, ds: str, docs: list[dict]):
         logger.info(f"총 {len(docs)}개 문서 수집 시작 (ds={ds})")
-        asyncio.run(self._run(ds, docs))
+        run(self._run(ds, docs))
         logger.info("모든 문서 수집 완료")
 
     async def _run(self, ds: str, docs: list[dict]):
-        await asyncio.gather(*[self._collect(ds, doc) for doc in docs])
+        semaphore = Semaphore(10)
+        await gather(*[self._collect(ds, doc, semaphore) for doc in docs])
 
-    async def _collect(self, ds: str, doc_meta: dict):
+    async def _collect(self, ds: str, doc_meta: dict, semaphore: Semaphore):
         slug = doc_meta["slug"]
         doc_id = doc_meta["id"]
         title = doc_meta["title"]
 
-        if self._exists(ds, doc_id):
-            logger.info(f"[SKIP] {title} ({slug})")
-            return
+        async with semaphore:
+            if self._exists(ds, doc_id):
+                logger.info(f"[SKIP] {title} ({slug})")
+                return
 
-        logger.info(f"[START] {title} ({slug})")
-        detail = await asyncio.to_thread(self.detail_crawler.run, slug)
+            logger.info(f"[START] {title} ({slug})")
+            detail = await to_thread(self.detail_crawler.run, slug)
 
-        record = _to_bumawiki_schema(doc_meta, detail or {})
-        self.storage_client.upload(
-            key=f"bronze/bumawiki/docs/dt={ds}/docs-{doc_id}-{title}.json",
-            value=[record],
-        )
-        logger.info(f"[DONE] {title} ({slug})")
+            record = _to_bumawiki_schema(doc_meta, detail or {})
+            self.storage_client.upload(
+                key=f"bronze/bumawiki/docs/dt={ds}/docs-{doc_id}-{title}.json",
+                value=[record],
+            )
+            logger.info(f"[DONE] {title} ({slug})")
 
     def _exists(self, ds: str, doc_id: str) -> bool:
         try:
