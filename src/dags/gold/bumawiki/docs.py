@@ -45,7 +45,7 @@ with DAG(
             "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
             "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
             "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-            "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY"),
+            "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY"),
         },
     )
 
