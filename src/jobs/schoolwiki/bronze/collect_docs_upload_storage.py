@@ -85,7 +85,7 @@ class CollectSchoolwikiDocsJob(Job):
 
                     record = _to_bumawiki_schema(doc_meta, detail or {})
                     self.storage_client.upload(
-                        key=f"bronze/bumawiki/docs/dt={ds}/docs-{doc_id}-{title}.json",
+                        key=f"bumawiki/bronze/docs/ds={ds}/docs-{doc_id}-{title}.json",
                         value=[record],
                     )
                     logger.info(f"[DONE] {title} ({slug})")
@@ -103,7 +103,7 @@ class CollectSchoolwikiDocsJob(Job):
             conn = create_conn()
             result = conn.execute(f"""
                 SELECT id FROM read_json_auto(
-                    's3://{S3Config.BUCKET_NAME}/bronze/bumawiki/docs/dt={ds}/*.json'
+                    's3://{S3Config.BUCKET_NAME}/bumawiki/bronze/docs/ds={ds}/*.json'
                 )
             """).fetchall()
             return {row[0] for row in result}

@@ -15,6 +15,9 @@ S3_ENV = {
     "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
     "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
     "S3_REGION": os.environ.get("S3_REGION"),
+    "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
+    "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
+    "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
 }
 
 with DAG(

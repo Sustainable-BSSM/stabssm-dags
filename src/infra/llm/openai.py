@@ -1,3 +1,4 @@
+import logging
 from typing import Any, List
 
 from langchain_openai import ChatOpenAI
@@ -6,6 +7,8 @@ from pydantic import SecretStr
 from src.common.config.openai import OpenAIConfig
 from src.core.llm import LLM
 from typing_extensions import Protocol
+
+logger = logging.getLogger(__name__)
 
 class OpenAI(Protocol):
     ...
@@ -34,8 +37,12 @@ class OpenAILLM(LLM):
             self,
             prompt: str
     ) -> Any:
-        response = await self.model.ainvoke(prompt)
-        return response.content
+        try:
+            response = await self.model.ainvoke(prompt)
+            return response.content
+        except Exception as e:
+            logger.error(f"[OpenAILLM] failed. prompt length={len(prompt)}\n{prompt}\nerror={e}")
+            raise
 
 class BatchOpenAI(LLM):
 

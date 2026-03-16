@@ -6,6 +6,7 @@ from pyiceberg.exceptions import NoSuchTableError
 from pyiceberg.expressions import EqualTo
 from pyiceberg.io.pyarrow import pyarrow_to_schema
 from pyiceberg.partitioning import PartitionField, PartitionSpec
+from pyiceberg.table.name_mapping import MappedField, NameMapping
 from pyiceberg.transforms import IdentityTransform
 
 from src.common.config.glue import GlueConfig
@@ -35,7 +36,11 @@ class IcebergBumaWikiDocsRepository(BumaWikiDocsRepository):
             except Exception:
                 pass
 
-            iceberg_schema = pyarrow_to_schema(arrow_table.schema)
+            name_mapping = NameMapping([
+                MappedField(field_id=i + 1, names=[field.name])
+                for i, field in enumerate(arrow_table.schema)
+            ])
+            iceberg_schema = pyarrow_to_schema(arrow_table.schema, name_mapping=name_mapping)
             ds_field_id = iceberg_schema.find_field("ds").field_id
             partition_spec = PartitionSpec(
                 PartitionField(source_id=ds_field_id, field_id=1000, transform=IdentityTransform(), name="ds")
