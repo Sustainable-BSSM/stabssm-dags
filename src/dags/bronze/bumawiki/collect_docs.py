@@ -95,8 +95,16 @@ with DAG(
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        outlets=[BUMAWIKI_BRONZE_DOCS],
         environment=S3_ENV,
     )
 
-    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles >> collect_docs
+    def _emit_bronze_event(outlet_events, ds):
+        outlet_events[BUMAWIKI_BRONZE_DOCS].extra = {"ds": ds}
+
+    emit_bronze_event = PythonOperator(
+        task_id="emit_bronze_event",
+        python_callable=_emit_bronze_event,
+        outlets=[BUMAWIKI_BRONZE_DOCS],
+    )
+
+    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles >> collect_docs >> emit_bronze_event
