@@ -1,3 +1,4 @@
+import warnings
 from collections import defaultdict
 
 from src.core.bumawiki.model import TeacherType
@@ -6,11 +7,21 @@ from src.core.requester import Requester
 
 
 class BumawikiTeacherCrawler(Crawler):
+    """
+    .. deprecated::
+        buma.wiki 서비스가 schoolwiki.org로 이전됨.
+        SchoolwikiDocsCrawler(category="TEACHER") 사용 권장.
+    """
 
     def __init__(
             self,
             requester: Requester,
     ):
+        warnings.warn(
+            "BumawikiTeacherCrawler는 deprecated입니다. SchoolwikiDocsCrawler를 사용하세요.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(requester)
         self.base_url = "https://buma.wiki/api/docs/{teacher}"
 

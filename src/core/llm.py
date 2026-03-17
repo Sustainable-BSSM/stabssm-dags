@@ -1,6 +1,9 @@
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Any, List
+
+logger = logging.getLogger(__name__)
 
 class LLM(ABC):
 
@@ -23,7 +26,11 @@ class LLM(ABC):
             query: str,
             variables: List = None,
     ) -> Any:
-        prompt = self._inject(query, variables) if variables else query
+        try:
+            prompt = self._inject(query, variables) if variables else query
+        except Exception as e:
+            logger.error(f"[LLM] _inject failed: {e}\nvariables={variables}")
+            raise
         return await self._call(prompt)
 
     @abstractmethod

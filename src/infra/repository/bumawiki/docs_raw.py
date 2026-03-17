@@ -26,7 +26,7 @@ class DuckDBBumaWikiDocsRawRepository(BumaWikiDocsRawRepository):
                 thumbnail,
                 docsDetail     AS docsdetail
             FROM read_json(
-                's3://{self._bucket}/bronze/bumawiki/docs/dt={ds}/*',
+                's3://{self._bucket}/bumawiki/bronze/docs/ds={ds}/*',
                 format       = 'newline_delimited',
                 auto_detect  = true
             )
@@ -35,7 +35,7 @@ class DuckDBBumaWikiDocsRawRepository(BumaWikiDocsRawRepository):
     def exists(self, ds: str, title: str) -> bool:
         try:
             result = self._conn.execute(f"""
-                SELECT COUNT(*) FROM read_json_auto('s3://{self._bucket}/bronze/bumawiki/docs/dt={ds}/*.json')
+                SELECT COUNT(*) FROM read_json_auto('s3://{self._bucket}/bumawiki/bronze/docs/ds={ds}/*.json')
                 WHERE title = '{title}'
             """).fetchone()
             return result[0] > 0

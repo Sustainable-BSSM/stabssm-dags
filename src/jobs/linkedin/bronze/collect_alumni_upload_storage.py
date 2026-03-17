@@ -25,7 +25,7 @@ class CollectBSSMAlumniJob(Job):
         alumnis: List[LinkedInPerson] = self.alumin_crawler.run()
 
         self.storage_client.upload(
-            key=f"bronze/linkedin/alumni/dt={ds}/alumni.json",
+            key=f"linkedin/bronze/alumni/dt={ds}/alumni.json",
             value=asdict(*alumnis)
         )
 

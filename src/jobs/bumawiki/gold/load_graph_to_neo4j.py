@@ -1,6 +1,10 @@
 import argparse
+import logging
 
 import neo4j
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 from src.core.jobs import Job
 from src.core.repository.bumawiki.graph import BumaWikiGraphRepository
@@ -25,11 +29,15 @@ class LoadGraphToNeo4jJob(Job):
         self._edge_repo = edge_repo
 
     def __call__(self, ds: str):
+        logger.info(f"[LoadGraphToNeo4jJob] start ds={ds}")
         nodes_df = self._graph_repo.get_nodes(ds)
         edges_df = self._graph_repo.get_edges(ds)
+        logger.info(f"[LoadGraphToNeo4jJob] loaded nodes={len(nodes_df)}, edges={len(edges_df)}")
 
         self._node_repo.save(df=nodes_df, ds=ds)
+        logger.info(f"[LoadGraphToNeo4jJob] nodes saved")
         self._edge_repo.save(df=edges_df, ds=ds)
+        logger.info(f"[LoadGraphToNeo4jJob] edges saved")
 
 
 def run_job(ds: str):

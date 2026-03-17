@@ -15,6 +15,9 @@ S3_ENV = {
     "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
     "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
     "S3_REGION": os.environ.get("S3_REGION"),
+    "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
+    "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
+    "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
 }
 
 with DAG(
@@ -30,7 +33,7 @@ with DAG(
     collect_student = DockerOperator(
         task_id="collect_student",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.bronze.get_student_titles",
+        command="src.jobs.schoolwiki.bronze.get_student_docs",
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
@@ -41,7 +44,7 @@ with DAG(
     collect_teacher = DockerOperator(
         task_id="collect_teacher",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.bronze.get_teacher_titles",
+        command="src.jobs.schoolwiki.bronze.get_teacher_docs",
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
@@ -52,7 +55,7 @@ with DAG(
     collect_club = DockerOperator(
         task_id="collect_club",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.bronze.get_club_titles",
+        command="src.jobs.schoolwiki.bronze.get_club_docs",
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
@@ -63,7 +66,7 @@ with DAG(
     collect_accident = DockerOperator(
         task_id="collect_accident",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.bronze.get_accident_titles",
+        command="src.jobs.schoolwiki.bronze.get_incident_docs",
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
@@ -88,15 +91,24 @@ with DAG(
         task_id="collect_docs",
         image="stabssm-jobs:latest",
         command=[
-            "src.jobs.bumawiki.bronze.collect_docs_upload_storage",
-            "--ds", "{{ ds }}",
-            "--titles", "{{ ti.xcom_pull(task_ids='merge_titles') }}",
+            "src.jobs.schoolwiki.bronze.collect_docs_upload_storage",
+            "--ds", "{{ data_interval_start.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}",
+            "--docs", "{{ ti.xcom_pull(task_ids='merge_titles') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        outlets=[BUMAWIKI_BRONZE_DOCS],
         environment=S3_ENV,
     )
 
-    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles >> collect_docs
+    def _emit_bronze_event(outlet_events, data_interval_start):
+        ds = data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d")
+        outlet_events[BUMAWIKI_BRONZE_DOCS].extra = {"ds": ds}
+
+    emit_bronze_event = PythonOperator(
+        task_id="emit_bronze_event",
+        python_callable=_emit_bronze_event,
+        outlets=[BUMAWIKI_BRONZE_DOCS],
+    )
+
+    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles >> collect_docs >> emit_bronze_event
