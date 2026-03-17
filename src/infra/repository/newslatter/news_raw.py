@@ -1,8 +1,12 @@
+import logging
+
 import polars as pl
 
 from src.common.config.s3 import S3Config
 from src.core.repository.newslatter.news_raw import NewsRawRepository
 from src.infra.duckdb import create_conn
+
+logger = logging.getLogger(__name__)
 
 
 class DuckDBNewsRawRepository(NewsRawRepository):
@@ -13,17 +17,21 @@ class DuckDBNewsRawRepository(NewsRawRepository):
 
     def read(self, week: str) -> pl.DataFrame:
         year, month, week_num = week.split('-')
-        return self._conn.execute(f"""
-            SELECT
-                title,
-                original_link,
-                link,
-                description,
-                pub_date,
-                query
-            FROM read_json(
-                's3://{self._bucket}/newslatter/bronze/news/year={year}/month={month}/week={week_num}/news.json',
-                format      = 'newline_delimited',
-                auto_detect = true
-            )
-        """).pl()
+        try:
+            return self._conn.execute(f"""
+                SELECT
+                    title,
+                    original_link,
+                    link,
+                    description,
+                    pub_date,
+                    query
+                FROM read_json(
+                    's3://{self._bucket}/newslatter/bronze/news/year={year}/month={month}/week={week_num}/news.json',
+                    format      = 'newline_delimited',
+                    auto_detect = true
+                )
+            """).pl()
+        except Exception as e:
+            logger.warning(f"[DuckDBNewsRawRepository] bronze 파일 없음 (week={week}): {e}")
+            return pl.DataFrame()

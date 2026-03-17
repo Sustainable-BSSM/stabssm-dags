@@ -6,7 +6,6 @@ from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
 
-NEWSLATTER_BRONZE_NEWS = Dataset("newslatter/bronze/news")
 NEWSLATTER_SILVER_NEWS = Dataset("newslatter/silver/news")
 
 S3_ENV = {
@@ -21,25 +20,22 @@ S3_ENV = {
 
 with DAG(
         dag_id="silver__transform_newslatter_news",
-        start_date=datetime(2024, 1, 1, tz="Asia/Seoul"),
-        schedule=[NEWSLATTER_BRONZE_NEWS],
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        schedule="@weekly",
         catchup=False,
         max_active_runs=1,
         tags=["newslatter"],
 ):
-    def _get_week(inlet_events):
-        events = list(inlet_events[NEWSLATTER_BRONZE_NEWS])
-        for event in reversed(events):
-            if "week" in event.extra:
-                return event.extra["week"]
-            if "crawled_week" in event.extra:
-                return event.extra["crawled_week"]
-        raise ValueError(f"No 'week' in inlet events. extras={[e.extra for e in events]}")
+    def _compute_week(data_interval_start, dag_run):
+        if dag_run.conf and (week := dag_run.conf.get("week")):
+            return week
+        dt = data_interval_start.in_timezone("Asia/Seoul")
+        week_of_month = (dt.day - 1) // 7 + 1
+        return f"{dt.year}-{dt.month:02d}-{week_of_month:02d}"
 
-    get_week = PythonOperator(
-        task_id="get_week",
-        python_callable=_get_week,
-        inlets=[NEWSLATTER_BRONZE_NEWS],
+    compute_week = PythonOperator(
+        task_id="compute_week",
+        python_callable=_compute_week,
     )
 
     transform_and_upload = DockerOperator(
@@ -47,7 +43,7 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.newslatter.silver.transform_news_parquet",
-            "--week", "{{ ti.xcom_pull(task_ids='get_week') }}",
+            "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
@@ -56,7 +52,7 @@ with DAG(
     )
 
     def _emit_silver_event(outlet_events, ti):
-        week = ti.xcom_pull(task_ids="get_week")
+        week = ti.xcom_pull(task_ids="compute_week")
         outlet_events[NEWSLATTER_SILVER_NEWS].extra = {"week": week}
 
     emit_silver_event = PythonOperator(
@@ -65,4 +61,4 @@ with DAG(
         outlets=[NEWSLATTER_SILVER_NEWS],
     )
 
-    get_week >> transform_and_upload >> emit_silver_event
+    compute_week >> transform_and_upload >> emit_silver_event

@@ -6,7 +6,6 @@ from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
 
-NEWSLATTER_SILVER_NEWS = Dataset("newslatter/silver/news")
 NEWSLATTER_GOLD_NEWS = Dataset("newslatter/gold/news")
 
 ENV = {
@@ -22,23 +21,22 @@ ENV = {
 
 with DAG(
         dag_id="gold__curate_newslatter_news",
-        start_date=datetime(2024, 1, 1, tz="Asia/Seoul"),
-        schedule=[NEWSLATTER_SILVER_NEWS],
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+        schedule="@weekly",
         catchup=False,
         max_active_runs=1,
         tags=["newslatter"],
 ):
-    def _get_week(inlet_events):
-        events = inlet_events[NEWSLATTER_SILVER_NEWS]
-        for event in events:
-            if "week" in event.extra:
-                return event.extra["week"]
-        raise ValueError(f"No 'week' in inlet events. extras={[e.extra for e in events]}")
+    def _compute_week(data_interval_start, dag_run):
+        if dag_run.conf and (week := dag_run.conf.get("week")):
+            return week
+        dt = data_interval_start.in_timezone("Asia/Seoul")
+        week_of_month = (dt.day - 1) // 7 + 1
+        return f"{dt.year}-{dt.month:02d}-{week_of_month:02d}"
 
-    get_week = PythonOperator(
-        task_id="get_week",
-        python_callable=_get_week,
-        inlets=[NEWSLATTER_SILVER_NEWS],
+    compute_week = PythonOperator(
+        task_id="compute_week",
+        python_callable=_compute_week,
     )
 
     curate_news = DockerOperator(
@@ -46,7 +44,7 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.newslatter.gold.curate_news",
-            "--week", "{{ ti.xcom_pull(task_ids='get_week') }}",
+            "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
@@ -55,7 +53,7 @@ with DAG(
     )
 
     def _emit_gold_event(outlet_events, ti):
-        week = ti.xcom_pull(task_ids="get_week")
+        week = ti.xcom_pull(task_ids="compute_week")
         outlet_events[NEWSLATTER_GOLD_NEWS].extra = {"week": week}
 
     emit_gold_event = PythonOperator(
@@ -64,4 +62,4 @@ with DAG(
         outlets=[NEWSLATTER_GOLD_NEWS],
     )
 
-    get_week >> curate_news >> emit_gold_event
+    compute_week >> curate_news >> emit_gold_event

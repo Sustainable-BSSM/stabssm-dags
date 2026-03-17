@@ -2,7 +2,7 @@ import logging
 
 import polars as pl
 import pyarrow as pa
-from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.exceptions import NoSuchTableError, TableAlreadyExistsError
 from pyiceberg.io.pyarrow import pyarrow_to_schema
 from pyiceberg.partitioning import PartitionField, PartitionSpec
 from pyiceberg.table.name_mapping import MappedField, NameMapping
@@ -45,12 +45,15 @@ class IcebergNewsGoldRepository(NewsGoldRepository):
                 PartitionField(source_id=week_field_id, field_id=1000, transform=IdentityTransform(), name="week")
             )
             location = f"{self._warehouse}/{self._namespace}/{self._TABLE_NAME}"
-            return self._catalog.create_table(
-                identifier=self._table_id,
-                schema=iceberg_schema,
-                partition_spec=partition_spec,
-                location=location,
-            )
+            try:
+                return self._catalog.create_table(
+                    identifier=self._table_id,
+                    schema=iceberg_schema,
+                    partition_spec=partition_spec,
+                    location=location,
+                )
+            except TableAlreadyExistsError:
+                return self._catalog.load_table(self._table_id)
 
     def save(self, df: pl.DataFrame) -> None:
         arrow_table = df.to_arrow()

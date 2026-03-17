@@ -22,14 +22,16 @@ S3_ENV = {
 
 with DAG(
         dag_id="bronze__collect_naver_news",
-        start_date=datetime(2024, 1, 1, tz="Asia/Seoul"),
+        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule="@weekly",
         catchup=False,
         max_active_runs=1,
         tags=["newslatter"],
 ) as dag:
 
-    def _compute_week(data_interval_start):
+    def _compute_week(data_interval_start, dag_run):
+        if dag_run.conf and (week := dag_run.conf.get("week")):
+            return week
         dt = data_interval_start.in_timezone("Asia/Seoul")
         week_of_month = (dt.day - 1) // 7 + 1
         return f"{dt.year}-{dt.month:02d}-{week_of_month:02d}"
