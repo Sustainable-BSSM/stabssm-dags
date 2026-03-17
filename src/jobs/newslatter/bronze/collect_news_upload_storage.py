@@ -17,7 +17,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 QUERIES = [
-    "부산소마고",
     "부산소프트웨어마이스터고",
     "부산 SW 마이스터고",
     "부산 소프트웨어 마이스터고",
@@ -50,7 +49,7 @@ class CollectNaverNewsJob(Job):
         logger.info("네이버 뉴스 수집 완료")
 
     async def _run(self):
-        semaphore = Semaphore(50)
+        semaphore = Semaphore(3)
         results = await gather(*[self._fetch_query(query, semaphore) for query in self.queries])
 
         seen: set[str] = set()
