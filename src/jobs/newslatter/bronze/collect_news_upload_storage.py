@@ -1,8 +1,9 @@
 import argparse
+import calendar
+import json
 import logging
 from asyncio import Semaphore, gather, run
-from collections import defaultdict
-from datetime import datetime
+from datetime import date
 from email.utils import parsedate_to_datetime
 from typing import List
 
@@ -22,14 +23,21 @@ QUERIES = [
     "부산 소프트웨어 마이스터고",
 ]
 
-def _pub_date_to_partition(pub_date: str) -> tuple[str, str, str]:
-    """RFC 2822 pubDate → (year, month, week_of_month) 파티션 튜플"""
+
+def _week_to_date_range(week: str) -> tuple[date, date]:
+    """'2026-03-02' → (date(2026,3,8), date(2026,3,14))"""
+    year, month, week_num = int(week.split('-')[0]), int(week.split('-')[1]), int(week.split('-')[2])
+    start_day = (week_num - 1) * 7 + 1
+    last_day = calendar.monthrange(year, month)[1]
+    end_day = min(week_num * 7, last_day)
+    return date(year, month, start_day), date(year, month, end_day)
+
+
+def _in_range(pub_date: str, start: date, end: date) -> bool:
     try:
-        dt: datetime = parsedate_to_datetime(pub_date)
-        week_of_month = (dt.day - 1) // 7 + 1
-        return str(dt.year), f"{dt.month:02d}", f"{week_of_month:02d}"
+        return start <= parsedate_to_datetime(pub_date).date() <= end
     except Exception:
-        return "unknown", "unknown", "unknown"
+        return False
 
 
 class CollectNaverNewsJob(Job):
@@ -43,31 +51,47 @@ class CollectNaverNewsJob(Job):
         self.queries = queries
         self.requester = requester
 
-    def __call__(self):
-        logger.info(f"네이버 뉴스 수집 시작 (queries={self.queries})")
-        run(self._run())
+    def __call__(self, week: str):
+        logger.info(f"네이버 뉴스 수집 시작 (week={week}, queries={self.queries})")
+        run(self._run(week))
         logger.info("네이버 뉴스 수집 완료")
 
-    async def _run(self):
+    async def _run(self, week: str):
+        start, end = _week_to_date_range(week)
+        logger.info(f"수집 범위: {start} ~ {end}")
+
         semaphore = Semaphore(3)
         results = await gather(*[self._fetch_query(query, semaphore) for query in self.queries])
 
         seen: set[str] = set()
-        by_partition: dict[tuple, list[dict]] = defaultdict(list)
+        items: list[dict] = []
         for articles in results:
             for article in articles:
                 if article.link in seen:
                     continue
+                if not _in_range(article.pub_date, start, end):
+                    continue
                 seen.add(article.link)
-                partition = _pub_date_to_partition(article.pub_date)
-                by_partition[partition].append(article.to_dict())
+                items.append(article.to_dict())
 
-        logger.info(f"중복 제거 후 총 {len(seen)}건")
+        logger.info(f"범위 내 중복 제거 후 총 {len(items)}건")
 
-        for (year, month, week), items in by_partition.items():
-            key = f"newslatter/bronze/news/year={year}/month={month}/week={week}/news.json"
+        if items:
+            year, month, week_num = week.split('-')
+            key = f"newslatter/bronze/news/year={year}/month={month}/week={week_num}/news.json"
+            items = self._merge_with_existing(key, items)
             self.storage_client.upload(key=key, value=items)
-            logger.info(f"[DONE] {year}/{month}/{week} - {len(items)}건 업로드")
+            logger.info(f"[DONE] {week} - {len(items)}건 업로드")
+
+    def _merge_with_existing(self, key: str, new_items: list[dict]) -> list[dict]:
+        existing = self.storage_client.get(key)
+        if not existing:
+            return new_items
+        existing_links = {item["link"] for item in existing}
+        deduped_new = [item for item in new_items if item["link"] not in existing_links]
+        merged = existing + deduped_new
+        logger.info(f"기존 {len(existing)}건 + 신규 {len(deduped_new)}건 = {len(merged)}건")
+        return merged
 
     async def _fetch_query(self, query: str, semaphore: Semaphore):
         crawler = NaverNewsCrawler(requester=self.requester, query=query)
@@ -81,11 +105,14 @@ class CollectNaverNewsJob(Job):
             return []
 
 
-def run_job():
+def run_job(week: str):
     storage_client = get_storage_client()
     job = CollectNaverNewsJob(storage_client=storage_client)
-    job()
+    job(week=week)
 
 
 if __name__ == "__main__":
-    run_job()
+    p = argparse.ArgumentParser()
+    p.add_argument("--week", required=True, type=str)
+    args = p.parse_args()
+    run_job(week=args.week)

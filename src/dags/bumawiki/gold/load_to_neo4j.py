@@ -14,6 +14,7 @@ with DAG(
         schedule=[BUMAWIKI_GOLD_DOCS_GRAPH],
         catchup=False,
         max_active_runs=1,
+        tags=["bumawiki"],
         params={"ds": ""},
 ):
     def _get_ds(inlet_events, params, ds):

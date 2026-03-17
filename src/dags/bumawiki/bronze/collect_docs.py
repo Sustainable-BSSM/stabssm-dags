@@ -24,6 +24,7 @@ with DAG(
         dag_id="bronze__collect_bumawiki",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule="@monthly",
+        tags=["bumawiki"],
         catchup=False,
         max_active_runs=1,
 ) as dag:

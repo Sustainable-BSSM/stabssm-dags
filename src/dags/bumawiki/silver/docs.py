@@ -13,6 +13,7 @@ with DAG(
         dag_id="silver__transform_bumawiki_docs",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule=[BUMAWIKI_BRONZE_DOCS],
+        tags=["bumawiki"],
         catchup=False,
         max_active_runs=1,
 ):

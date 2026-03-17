@@ -26,21 +26,35 @@ with DAG(
         schedule="@weekly",
         catchup=False,
         max_active_runs=1,
+        tags=["newslatter"],
 ) as dag:
+
+    def _compute_week(data_interval_start):
+        dt = data_interval_start.in_timezone("Asia/Seoul")
+        week_of_month = (dt.day - 1) // 7 + 1
+        return f"{dt.year}-{dt.month:02d}-{week_of_month:02d}"
+
+    compute_week = PythonOperator(
+        task_id="compute_week",
+        python_callable=_compute_week,
+    )
 
     collect_news = DockerOperator(
         task_id="collect_news",
         image="stabssm-jobs:latest",
-        command=["src.jobs.newslatter.bronze.collect_news_upload_storage"],
+        command=[
+            "src.jobs.newslatter.bronze.collect_news_upload_storage",
+            "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
+        ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
         environment=S3_ENV,
     )
 
-    def _emit_bronze_event(outlet_events, data_interval_start):
-        week = data_interval_start.in_timezone("Asia/Seoul").strftime("%G-%V")
-        outlet_events[NAVER_BRONZE_NEWS].extra = {"crawled_week": week}
+    def _emit_bronze_event(outlet_events, ti):
+        week = ti.xcom_pull(task_ids="compute_week")
+        outlet_events[NAVER_BRONZE_NEWS].extra = {"week": week}
 
     emit_bronze_event = PythonOperator(
         task_id="emit_bronze_event",
@@ -48,4 +62,4 @@ with DAG(
         outlets=[NAVER_BRONZE_NEWS],
     )
 
-    collect_news >> emit_bronze_event
+    compute_week >> collect_news >> emit_bronze_event
