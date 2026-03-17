@@ -36,7 +36,6 @@ with DAG(
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        outlets=[BUMAWIKI_GOLD_DOCS_GRAPH],
         environment={
             "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
             "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
@@ -49,4 +48,14 @@ with DAG(
         },
     )
 
-    get_ds >> build_graph
+    def _emit_graph_event(outlet_events, ti):
+        ds = ti.xcom_pull(task_ids="get_ds")
+        outlet_events[BUMAWIKI_GOLD_DOCS_GRAPH].extra = {"ds": ds}
+
+    emit_graph_event = PythonOperator(
+        task_id="emit_graph_event",
+        python_callable=_emit_graph_event,
+        outlets=[BUMAWIKI_GOLD_DOCS_GRAPH],
+    )
+
+    get_ds >> build_graph >> emit_graph_event

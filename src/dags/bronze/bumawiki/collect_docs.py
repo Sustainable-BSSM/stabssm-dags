@@ -92,7 +92,7 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.schoolwiki.bronze.collect_docs_upload_storage",
-            "--ds", "{{ ds }}",
+            "--ds", "{{ data_interval_start.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}",
             "--docs", "{{ ti.xcom_pull(task_ids='merge_titles') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
@@ -101,7 +101,8 @@ with DAG(
         environment=S3_ENV,
     )
 
-    def _emit_bronze_event(outlet_events, ds):
+    def _emit_bronze_event(outlet_events, data_interval_start):
+        ds = data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d")
         outlet_events[BUMAWIKI_BRONZE_DOCS].extra = {"ds": ds}
 
     emit_bronze_event = PythonOperator(
