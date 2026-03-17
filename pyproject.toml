@@ -16,4 +16,5 @@ dependencies = [
     "pyarrow>=19.0.0",
     "neo4j>=5.0.0",
     "pyiceberg[glue,s3]>=0.8.0",
+    "reportlab>=4.4.10",
 ]
