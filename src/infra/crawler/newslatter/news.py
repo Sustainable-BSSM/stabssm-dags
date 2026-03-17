@@ -1,6 +1,6 @@
 import logging
 import re
-from asyncio import Semaphore, gather, to_thread
+from asyncio import Semaphore, gather, sleep, to_thread
 
 from src.common.config.newslatter import NaverConfig
 from src.core.crawler import Crawler
@@ -45,8 +45,16 @@ class NaverNewsCrawler(Crawler):
 
         async def fetch_page(start: int) -> list[NewsInfo]:
             async with semaphore:
-                data = await to_thread(self._fetch, start)
-                return self._parse(data)
+                for attempt in range(3):
+                    try:
+                        data = await to_thread(self._fetch, start)
+                        return self._parse(data)
+                    except Exception as e:
+                        if attempt < 2:
+                            await sleep(2 ** attempt)
+                        else:
+                            logger.warning(f"[{self.query}] start={start} 실패: {e}")
+                return []
 
         pages = await gather(*[fetch_page(s) for s in remaining_starts])
         all_items = first_items + [item for page in pages for item in page]
