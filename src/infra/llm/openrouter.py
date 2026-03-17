@@ -26,7 +26,7 @@ class OpenRouterLLM(LLM):
 
     def __init__(
             self,
-            model: str = "google/gemini-2.0-flash-exp:free",
+            model: str = "deepseek/deepseek-chat-v3-0324",
             template: str = None,
             temperature: float = 1.0,
             max_tokens: int = None,
