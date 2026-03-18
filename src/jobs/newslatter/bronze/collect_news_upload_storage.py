@@ -46,10 +46,12 @@ class CollectNaverNewsJob(Job):
             storage_client: StorageClient,
             queries: List[str] = QUERIES,
             requester: Requester = HttpRequester(),
+            source: str = "school",
     ):
         self.storage_client = storage_client
         self.queries = queries
         self.requester = requester
+        self.source = source
 
     def __call__(self, week: str):
         logger.info(f"네이버 뉴스 수집 시작 (week={week}, queries={self.queries})")
@@ -78,7 +80,7 @@ class CollectNaverNewsJob(Job):
 
         if items:
             year, month, week_num = week.split('-')
-            key = f"newslatter/bronze/news/year={year}/month={month}/week={week_num}/news.json"
+            key = f"newslatter/bronze/{self.source}/year={year}/month={month}/week={week_num}/news.json"
             items = self._merge_with_existing(key, items)
             self.storage_client.upload(key=key, value=items)
             logger.info(f"[DONE] {week} - {len(items)}건 업로드")

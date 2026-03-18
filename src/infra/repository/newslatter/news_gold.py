@@ -18,9 +18,8 @@ logger = logging.getLogger(__name__)
 
 class IcebergNewsGoldRepository(NewsGoldRepository):
 
-    _TABLE_NAME = "newslatter_news_gold"
-
-    def __init__(self):
+    def __init__(self, table_name: str = "newslatter_school"):
+        self._TABLE_NAME = table_name
         self._catalog = create_catalog()
         self._namespace = GlueConfig.GOLD_DATABASE
         self._warehouse = GlueConfig.WAREHOUSE or f"s3://{S3Config.BUCKET_NAME}/iceberg"

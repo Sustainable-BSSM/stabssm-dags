@@ -1,12 +1,9 @@
 import os
 
 from airflow import DAG
-from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
-
-NEWSLATTER_SILVER_NEWS = Dataset("newslatter/silver/news")
 
 S3_ENV = {
     "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
@@ -19,7 +16,7 @@ S3_ENV = {
 }
 
 with DAG(
-        dag_id="silver__transform_newslatter_news",
+        dag_id="silver__transform_newslatter_school_news",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule="@weekly",
         catchup=False,
@@ -51,14 +48,4 @@ with DAG(
         environment=S3_ENV,
     )
 
-    def _emit_silver_event(outlet_events, ti):
-        week = ti.xcom_pull(task_ids="compute_week")
-        outlet_events[NEWSLATTER_SILVER_NEWS].extra = {"week": week}
-
-    emit_silver_event = PythonOperator(
-        task_id="emit_silver_event",
-        python_callable=_emit_silver_event,
-        outlets=[NEWSLATTER_SILVER_NEWS],
-    )
-
-    compute_week >> transform_and_upload >> emit_silver_event
+    compute_week >> transform_and_upload

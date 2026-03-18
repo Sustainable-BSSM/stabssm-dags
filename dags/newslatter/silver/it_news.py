@@ -13,19 +13,17 @@ S3_ENV = {
     "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
     "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
     "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-    "NAVER_NEWS_CLIENT_ID": os.environ.get("NAVER_NEWS_CLIENT_ID"),
-    "NAVER_NEWS_SECRET": os.environ.get("NAVER_NEWS_SECRET"),
 }
 
 with DAG(
-        dag_id="bronze__collect_naver_school_news",
+        dag_id="silver__transform_newslatter_it_news",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule="@weekly",
         catchup=False,
         max_active_runs=1,
         tags=["newslatter"],
-) as dag:
-
+        params={"week": ""},
+):
     def _compute_week(data_interval_start, dag_run):
         if dag_run.conf and (week := dag_run.conf.get("week")):
             return week
@@ -38,11 +36,11 @@ with DAG(
         python_callable=_compute_week,
     )
 
-    collect_news = DockerOperator(
-        task_id="collect_news",
+    transform_and_upload = DockerOperator(
+        task_id="transform_and_upload",
         image="stabssm-jobs:latest",
         command=[
-            "src.jobs.newslatter.bronze.collect_news_upload_storage",
+            "src.jobs.newslatter.silver.transform_it_news_parquet",
             "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
@@ -51,4 +49,4 @@ with DAG(
         environment=S3_ENV,
     )
 
-    compute_week >> collect_news
+    compute_week >> transform_and_upload

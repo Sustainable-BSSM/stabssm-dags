@@ -11,8 +11,9 @@ logger = logging.getLogger(__name__)
 
 class DuckDBNewsRawRepository(NewsRawRepository):
 
-    def __init__(self, bucket: str = S3Config.BUCKET_NAME):
+    def __init__(self, bucket: str = S3Config.BUCKET_NAME, source: str = "school"):
         self._bucket = bucket
+        self._source = source
         self._conn = create_conn()
 
     def read(self, week: str) -> pl.DataFrame:
@@ -27,7 +28,7 @@ class DuckDBNewsRawRepository(NewsRawRepository):
                     pub_date,
                     query
                 FROM read_json(
-                    's3://{self._bucket}/newslatter/bronze/news/year={year}/month={month}/week={week_num}/news.json',
+                    's3://{self._bucket}/newslatter/bronze/{self._source}/year={year}/month={month}/week={week_num}/news.json',
                     format      = 'newline_delimited',
                     auto_detect = true
                 )

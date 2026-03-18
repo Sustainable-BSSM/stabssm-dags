@@ -13,9 +13,8 @@ logger = logging.getLogger(__name__)
 
 class IcebergNewsSilverRepository(NewsSilverRepository):
 
-    _TABLE_NAME = "newslatter_news"
-
-    def __init__(self):
+    def __init__(self, table_name: str = "newslatter_school"):
+        self._TABLE_NAME = table_name
         self._catalog = create_catalog()
         self._namespace = GlueConfig.SILVER_DATABASE
         self._table_id = (self._namespace, self._TABLE_NAME)

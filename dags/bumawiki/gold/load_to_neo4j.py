@@ -17,14 +17,14 @@ with DAG(
         tags=["bumawiki"],
         params={"ds": ""},
 ):
-    def _get_ds(inlet_events, params, ds):
+    def _get_ds(inlet_events, params):
         events = inlet_events[BUMAWIKI_GOLD_DOCS_GRAPH]
         for event in events:
             if "ds" in event.extra:
                 return event.extra["ds"]
         if params.get("ds"):
             return params["ds"]
-        return ds
+        raise ValueError("No 'ds' found in inlet events or params")
 
     get_ds = PythonOperator(
         task_id="get_ds",

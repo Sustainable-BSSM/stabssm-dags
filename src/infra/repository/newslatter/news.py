@@ -1,8 +1,10 @@
 import logging
+import random
+import time
 
 import polars as pl
 import pyarrow as pa
-from pyiceberg.exceptions import NoSuchTableError, TableAlreadyExistsError
+from pyiceberg.exceptions import CommitFailedException, NoSuchTableError, TableAlreadyExistsError
 from pyiceberg.expressions import EqualTo
 from pyiceberg.io.pyarrow import pyarrow_to_schema
 from pyiceberg.partitioning import PartitionField, PartitionSpec
@@ -19,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 class IcebergNewsRepository(NewsRepository):
 
-    _TABLE_NAME = "newslatter_news"
-
-    def __init__(self):
+    def __init__(self, table_name: str = "newslatter_school"):
+        self._TABLE_NAME = table_name
         self._catalog = create_catalog()
         self._namespace = GlueConfig.SILVER_DATABASE
         self._warehouse = GlueConfig.WAREHOUSE or f"s3://{S3Config.BUCKET_NAME}/iceberg"
@@ -65,10 +66,22 @@ class IcebergNewsRepository(NewsRepository):
             pl.lit(month).alias("month"),
             pl.lit(week).alias("week"),
         ).to_arrow()
-        table = self._get_or_create_table(arrow_table)
-        try:
-            table.delete(EqualTo("week", week))
-        except Exception:
-            pass
-        table.append(arrow_table)
-        logger.info(f"[IcebergNewsRepository] saved {len(df)} rows (week={week})")
+        for attempt in range(5):
+            try:
+                table = self._get_or_create_table(arrow_table)
+                try:
+                    table.delete(EqualTo("week", week))
+                except CommitFailedException:
+                    raise
+                except Exception:
+                    pass
+                table = self._catalog.load_table(self._table_id)
+                table.append(arrow_table)
+                logger.info(f"[IcebergNewsRepository] saved {len(df)} rows (week={week})")
+                return
+            except CommitFailedException as e:
+                if attempt == 4:
+                    raise
+                wait = 2 ** attempt + random.random()
+                logger.warning(f"[IcebergNewsRepository] commit conflict, retry {attempt + 1}/5 after {wait:.1f}s: {e}")
+                time.sleep(wait)
