@@ -41,9 +41,11 @@ class IcebergNewsRepository(NewsRepository):
                 for i, field in enumerate(arrow_table.schema)
             ])
             iceberg_schema = pyarrow_to_schema(arrow_table.schema, name_mapping=name_mapping)
+            year_field_id = iceberg_schema.find_field("year").field_id
             week_field_id = iceberg_schema.find_field("week").field_id
             partition_spec = PartitionSpec(
-                PartitionField(source_id=week_field_id, field_id=1000, transform=IdentityTransform(), name="week")
+                PartitionField(source_id=year_field_id, field_id=1000, transform=IdentityTransform(), name="year"),
+                PartitionField(source_id=week_field_id, field_id=1001, transform=IdentityTransform(), name="week"),
             )
             location = f"{self._warehouse}/{self._namespace}/{self._TABLE_NAME}"
             try:
@@ -57,7 +59,12 @@ class IcebergNewsRepository(NewsRepository):
                 return self._catalog.load_table(self._table_id)
 
     def save(self, df: pl.DataFrame, week: str) -> None:
-        arrow_table = df.with_columns(pl.lit(week).alias("week")).to_arrow()
+        year, month, _ = week.split("-")
+        arrow_table = df.with_columns(
+            pl.lit(year).alias("year"),
+            pl.lit(month).alias("month"),
+            pl.lit(week).alias("week"),
+        ).to_arrow()
         table = self._get_or_create_table(arrow_table)
         try:
             table.delete(EqualTo("week", week))

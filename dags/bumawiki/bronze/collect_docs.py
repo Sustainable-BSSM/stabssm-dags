@@ -27,7 +27,18 @@ with DAG(
         tags=["bumawiki"],
         catchup=False,
         max_active_runs=1,
+        params={"ds": ""},
 ) as dag:
+
+    def _compute_ds(data_interval_start, params):
+        if params.get("ds"):
+            return params["ds"]
+        return data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d")
+
+    compute_ds = PythonOperator(
+        task_id="compute_ds",
+        python_callable=_compute_ds,
+    )
 
     start = EmptyOperator(task_id="start")
 
@@ -93,7 +104,7 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.schoolwiki.bronze.collect_docs_upload_storage",
-            "--ds", "{{ data_interval_start.in_timezone('Asia/Seoul').strftime('%Y-%m-%d') }}",
+            "--ds", "{{ ti.xcom_pull(task_ids='compute_ds') }}",
             "--docs", "{{ ti.xcom_pull(task_ids='merge_titles') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
@@ -102,8 +113,8 @@ with DAG(
         environment=S3_ENV,
     )
 
-    def _emit_bronze_event(outlet_events, data_interval_start):
-        ds = data_interval_start.in_timezone("Asia/Seoul").strftime("%Y-%m-%d")
+    def _emit_bronze_event(outlet_events, ti):
+        ds = ti.xcom_pull(task_ids="compute_ds")
         outlet_events[BUMAWIKI_BRONZE_DOCS].extra = {"ds": ds}
 
     emit_bronze_event = PythonOperator(
@@ -112,4 +123,6 @@ with DAG(
         outlets=[BUMAWIKI_BRONZE_DOCS],
     )
 
-    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles >> collect_docs >> emit_bronze_event
+    start >> compute_ds
+    start >> [collect_student, collect_teacher, collect_club, collect_accident] >> merge_titles
+    [compute_ds, merge_titles] >> collect_docs >> emit_bronze_event
