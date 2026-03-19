@@ -9,12 +9,12 @@ from pendulum import datetime
 BUMAWIKI_GOLD_DOCS_GRAPH = Dataset("bumawiki/gold/docs-graph")
 
 with DAG(
-        dag_id="gold__load_bumawiki_graph_to_neo4j",
+        dag_id="external__load_bumawiki_graph_to_neo4j",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule=[BUMAWIKI_GOLD_DOCS_GRAPH],
         catchup=False,
         max_active_runs=1,
-        tags=["bumawiki"],
+        tags=["bumawiki", "external"],
         params={"ds": ""},
 ):
     def _get_ds(inlet_events, params):
@@ -35,7 +35,7 @@ with DAG(
     load_to_neo4j = DockerOperator(
         task_id="load_to_neo4j",
         image="stabssm-jobs:latest",
-        command="src.jobs.bumawiki.gold.load_graph_to_neo4j --ds {{ ti.xcom_pull(task_ids='get_ds') }}",
+        command="src.jobs.bumawiki.external.load_graph_to_neo4j --ds {{ ti.xcom_pull(task_ids='get_ds') }}",
         docker_url="unix:///var/run/docker.sock",
         network_mode="stabssm-dags_stabssm-net",
         mount_tmp_dir=False,

@@ -1,6 +1,6 @@
 import logging
 import re
-from asyncio import Semaphore, gather, sleep, to_thread
+from asyncio import Semaphore, sleep, to_thread
 
 from src.common.config.newslatter import NaverConfig
 from src.core.crawler import Crawler
@@ -31,35 +31,43 @@ class NaverNewsCrawler(Crawler):
         }
 
     async def run(self, semaphore: Semaphore) -> list[NewsInfo]:
-        first_data = await to_thread(self._fetch, 1)
-        first_items = self._parse(first_data)
-        if not first_items:
-            return []
+        all_items: list[NewsInfo] = []
 
-        total = first_data.get("total", 0)
-        remaining_starts = range(
-            1 + self.MAX_DISPLAY,
-            min(total, self.MAX_START) + 1,
-            self.MAX_DISPLAY,
-        )
-
-        async def fetch_page(start: int) -> list[NewsInfo]:
+        for start in range(1, self.MAX_START + 1, self.MAX_DISPLAY):
             async with semaphore:
-                for attempt in range(3):
-                    try:
-                        data = await to_thread(self._fetch, start)
-                        return self._parse(data)
-                    except Exception as e:
-                        if attempt < 2:
-                            await sleep(2 ** attempt)
-                        else:
-                            logger.warning(f"[{self.query}] start={start} 실패: {e}")
-                return []
+                data = await self._fetch_with_backoff(start)
 
-        pages = await gather(*[fetch_page(s) for s in remaining_starts])
-        all_items = first_items + [item for page in pages for item in page]
+            if data is None:
+                break
+
+            items = self._parse(data)
+            if not items:
+                break
+
+            all_items.extend(items)
+
+            if len(items) < self.MAX_DISPLAY:
+                break
+
+            await sleep(0.5)
+
         logger.info(f"[{self.query}] 총 {len(all_items)}건 수집")
         return all_items
+
+    async def _fetch_with_backoff(self, start: int) -> dict | None:
+        for attempt in range(4):
+            try:
+                return await to_thread(self._fetch, start)
+            except Exception as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                if status == 429:
+                    wait = 2 ** (attempt + 1)
+                    logger.warning(f"[{self.query}] 429 rate limit, {wait}s 대기 (attempt={attempt + 1})")
+                    await sleep(wait)
+                else:
+                    logger.warning(f"[{self.query}] start={start} 실패: {e}")
+                    return None
+        return None
 
     def _fetch(self, start: int = 1) -> dict:
         params = {

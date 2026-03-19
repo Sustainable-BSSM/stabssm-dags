@@ -1,21 +1,26 @@
 import logging
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 logger = logging.getLogger(__name__)
-
-_MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 
 
 class NewsEmbedder:
 
     def __init__(self):
-        logger.info(f"[NewsEmbedder] loading model: {_MODEL_NAME}")
-        self._model = SentenceTransformer(_MODEL_NAME)
+        self._vectorizer = TfidfVectorizer(
+            analyzer="char_wb",
+            ngram_range=(2, 3),
+            max_features=8192,
+            sublinear_tf=True,
+        )
 
     def encode(self, texts: list[str]) -> np.ndarray:
-        return self._model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+        matrix = self._vectorizer.fit_transform(texts)
+        norms = np.asarray(matrix.multiply(matrix).sum(axis=1)).flatten() ** 0.5
+        norms[norms == 0] = 1
+        return (matrix.multiply(1 / norms[:, None])).toarray()
 
     def cluster(self, embeddings: np.ndarray, threshold: float = 0.85) -> list[list[int]]:
         sim_matrix = embeddings @ embeddings.T

@@ -2,9 +2,8 @@ import argparse
 import calendar
 import json
 import logging
-from asyncio import Semaphore, gather, run
+from asyncio import Semaphore, run
 from datetime import date
-from email.utils import parsedate_to_datetime
 from typing import List
 
 from src.core.client.storage import StorageClient
@@ -33,12 +32,6 @@ def _week_to_date_range(week: str) -> tuple[date, date]:
     return date(year, month, start_day), date(year, month, end_day)
 
 
-def _in_range(pub_date: str, start: date, end: date) -> bool:
-    try:
-        return start <= parsedate_to_datetime(pub_date).date() <= end
-    except Exception:
-        return False
-
 
 class CollectNaverNewsJob(Job):
     def __init__(
@@ -62,16 +55,13 @@ class CollectNaverNewsJob(Job):
         start, end = _week_to_date_range(week)
         logger.info(f"수집 범위: {start} ~ {end}")
 
-        semaphore = Semaphore(3)
-        results = await gather(*[self._fetch_query(query, semaphore) for query in self.queries])
-
+        semaphore = Semaphore(1)
         seen: set[str] = set()
         items: list[dict] = []
-        for articles in results:
+        for query in self.queries:
+            articles = await self._fetch_query(query, semaphore)
             for article in articles:
                 if article.link in seen:
-                    continue
-                if not _in_range(article.pub_date, start, end):
                     continue
                 seen.add(article.link)
                 items.append(article.to_dict())

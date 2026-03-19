@@ -3,26 +3,29 @@ import os
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
+from docker.types import Mount
 from pendulum import datetime
 
+GDRIVE_HOST_PATH = os.environ.get("GDRIVE_NEWSLETTER_HOST_PATH", "/mnt/gdrive/newsletter")
+GDRIVE_CONTAINER_PATH = "/gdrive"
+
 ENV = {
-    "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
-    "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
-    "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-    "S3_REGION": os.environ.get("S3_REGION"),
     "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
     "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
     "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
     "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY"),
+    "GLUE_DATABASE": os.environ.get("GLUE_DATABASE"),
+    "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
 }
 
 with DAG(
-        dag_id="gold__curate_newslatter_school_news",
+        dag_id="external__generate_newslatter_pdf",
         start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
         schedule="@weekly",
         catchup=False,
         max_active_runs=1,
-        tags=["newslatter"],
+        tags=["newslatter", "external"],
+        params={"week": ""},
 ):
     def _compute_week(data_interval_start, dag_run):
         if dag_run.conf and (week := dag_run.conf.get("week")):
@@ -36,18 +39,25 @@ with DAG(
         python_callable=_compute_week,
     )
 
-    curate_news = DockerOperator(
-        task_id="curate_news",
+    generate_pdf = DockerOperator(
+        task_id="generate_pdf",
         image="stabssm-jobs:latest",
         command=[
-            "src.jobs.newslatter.gold.curate_news",
+            "src.jobs.newslatter.external.generate_newsletter",
             "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
+            "--output-dir", GDRIVE_CONTAINER_PATH,
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        mem_limit="2g",
+        mounts=[
+            Mount(
+                source=GDRIVE_HOST_PATH,
+                target=GDRIVE_CONTAINER_PATH,
+                type="bind",
+            )
+        ],
         environment=ENV,
     )
 
-    compute_week >> curate_news
+    compute_week >> generate_pdf

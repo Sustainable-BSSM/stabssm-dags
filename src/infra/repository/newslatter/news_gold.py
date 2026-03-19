@@ -1,8 +1,11 @@
 import logging
+import random
+import time
 
 import polars as pl
 import pyarrow as pa
-from pyiceberg.exceptions import NoSuchTableError, TableAlreadyExistsError
+from pyiceberg.exceptions import CommitFailedException, NoSuchTableError, TableAlreadyExistsError
+from pyiceberg.expressions import EqualTo
 from pyiceberg.io.pyarrow import pyarrow_to_schema
 from pyiceberg.partitioning import PartitionField, PartitionSpec
 from pyiceberg.table.name_mapping import MappedField, NameMapping
@@ -56,6 +59,23 @@ class IcebergNewsGoldRepository(NewsGoldRepository):
 
     def save(self, df: pl.DataFrame) -> None:
         arrow_table = df.to_arrow()
-        table = self._get_or_create_table(arrow_table)
-        table.append(arrow_table)
-        logger.info(f"[IcebergNewsGoldRepository] saved {len(df)} rows to iceberg")
+        week = df["week"][0]
+        for attempt in range(5):
+            try:
+                table = self._get_or_create_table(arrow_table)
+                try:
+                    table.delete(EqualTo("week", week))
+                except CommitFailedException:
+                    raise
+                except Exception:
+                    pass
+                table = self._catalog.load_table(self._table_id)
+                table.append(arrow_table)
+                logger.info(f"[IcebergNewsGoldRepository] saved {len(df)} rows (week={week})")
+                return
+            except CommitFailedException as e:
+                if attempt == 4:
+                    raise
+                wait = 2 ** attempt + random.random()
+                logger.warning(f"[IcebergNewsGoldRepository] commit conflict, retry {attempt + 1}/5 after {wait:.1f}s: {e}")
+                time.sleep(wait)

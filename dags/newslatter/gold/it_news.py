@@ -47,6 +47,7 @@ with DAG(
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
+        mem_limit="2g",
         environment=ENV,
     )
 

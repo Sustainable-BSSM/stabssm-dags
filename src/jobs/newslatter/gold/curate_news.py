@@ -4,6 +4,7 @@ import logging
 import polars as pl
 
 from src.core.jobs import Job
+from src.core.newslatter.scorer import NewsScorer as AbstractNewsScorer
 from src.core.repository.newslatter.news_gold import NewsGoldRepository
 from src.core.repository.newslatter.news_silver import NewsSilverRepository
 from src.dependencies.repository.newslatter_news_gold import get_news_gold_repository
@@ -23,11 +24,12 @@ class CurateNewsJob(Job):
             self,
             silver_repo: NewsSilverRepository,
             gold_repo: NewsGoldRepository,
+            scorer: AbstractNewsScorer = NewsScorer(),
     ):
         self._silver_repo = silver_repo
         self._gold_repo = gold_repo
         self._embedder = NewsEmbedder()
-        self._scorer = NewsScorer()
+        self._scorer = scorer
 
     def __call__(self, week: str):
         asyncio.run(self._run(week))
