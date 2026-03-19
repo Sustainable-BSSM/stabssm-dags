@@ -1,9 +1,9 @@
 import argparse
 import calendar
-import json
 import logging
 from asyncio import Semaphore, run
 from datetime import date
+from email.utils import parsedate_to_datetime
 from typing import List
 
 from src.core.client.storage import StorageClient
@@ -63,6 +63,8 @@ class CollectNaverNewsJob(Job):
             for article in articles:
                 if article.link in seen:
                     continue
+                if not self._in_date_range(article.pub_date, start, end):
+                    continue
                 seen.add(article.link)
                 items.append(article.to_dict())
 
@@ -84,6 +86,15 @@ class CollectNaverNewsJob(Job):
         merged = existing + deduped_new
         logger.info(f"기존 {len(existing)}건 + 신규 {len(deduped_new)}건 = {len(merged)}건")
         return merged
+
+    @staticmethod
+    def _in_date_range(pub_date: str, start: date, end: date) -> bool:
+        try:
+            dt = parsedate_to_datetime(pub_date)
+            article_date = dt.date()
+            return start <= article_date <= end
+        except Exception:
+            return True  # 날짜 파싱 실패 시 통과
 
     async def _fetch_query(self, query: str, semaphore: Semaphore):
         crawler = NaverNewsCrawler(requester=self.requester, query=query)

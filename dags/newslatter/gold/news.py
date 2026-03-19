@@ -14,6 +14,9 @@ ENV = {
     "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
     "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
     "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY"),
+    "LANGCHAIN_TRACING_V2": "true",
+    "LANGCHAIN_API_KEY": os.environ.get("LANGCHAIN_API_KEY"),
+    "LANGCHAIN_PROJECT": "stabssm",
 }
 
 with DAG(

@@ -69,14 +69,7 @@ class IcebergNewsRepository(NewsRepository):
         for attempt in range(5):
             try:
                 table = self._get_or_create_table(arrow_table)
-                try:
-                    table.delete(EqualTo("week", week))
-                except CommitFailedException:
-                    raise
-                except Exception:
-                    pass
-                table = self._catalog.load_table(self._table_id)
-                table.append(arrow_table)
+                table.overwrite(arrow_table, overwrite_filter=EqualTo("week", week))
                 logger.info(f"[IcebergNewsRepository] saved {len(df)} rows (week={week})")
                 return
             except CommitFailedException as e:
