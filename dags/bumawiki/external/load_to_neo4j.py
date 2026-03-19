@@ -1,5 +1,3 @@
-import os
-
 from airflow import DAG
 from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
@@ -40,16 +38,16 @@ with DAG(
         network_mode="stabssm-dags_stabssm-net",
         mount_tmp_dir=False,
         environment={
-            "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
-            "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
-            "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-            "S3_REGION": os.environ.get("S3_REGION"),
-            "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
-            "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
-            "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-            "NEO4J_URI": os.environ.get("NEO4J_URI"),
-            "NEO4J_USER": os.environ.get("NEO4J_USER"),
-            "NEO4J_PASSWORD": os.environ.get("NEO4J_PASSWORD"),
+            "S3_ACCESS_KEY": "{{ var.value.S3_ACCESS_KEY }}",
+            "S3_SECRET_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
+            "S3_REGION": "{{ var.value.S3_REGION }}",
+            "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
+            "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
+            "NEO4J_URI": "{{ var.value.NEO4J_URI }}",
+            "NEO4J_USER": "{{ var.value.NEO4J_USER }}",
+            "NEO4J_PASSWORD": "{{ var.value.NEO4J_PASSWORD }}",
         },
     )
 

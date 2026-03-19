@@ -1,23 +1,7 @@
-import os
-
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
-
-ENV = {
-    "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
-    "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
-    "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-    "S3_REGION": os.environ.get("S3_REGION"),
-    "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
-    "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
-    "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-    "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY"),
-    "LANGCHAIN_TRACING_V2": "true",
-    "LANGCHAIN_API_KEY": os.environ.get("LANGCHAIN_API_KEY"),
-    "LANGCHAIN_PROJECT": "stabssm",
-}
 
 with DAG(
         dag_id="gold__curate_newslatter_school_news",
@@ -50,7 +34,19 @@ with DAG(
         network_mode="bridge",
         mount_tmp_dir=False,
         mem_limit="2g",
-        environment=ENV,
+        environment={
+            "S3_ACCESS_KEY": "{{ var.value.S3_ACCESS_KEY }}",
+            "S3_SECRET_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
+            "S3_REGION": "{{ var.value.S3_REGION }}",
+            "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
+            "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
+            "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
+            "LANGCHAIN_TRACING_V2": "true",
+            "LANGCHAIN_API_KEY": "{{ var.value.LANGCHAIN_API_KEY }}",
+            "LANGCHAIN_PROJECT": "stabssm",
+        },
     )
 
     compute_week >> curate_news

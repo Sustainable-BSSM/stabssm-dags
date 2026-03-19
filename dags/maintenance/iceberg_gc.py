@@ -1,5 +1,3 @@
-import os
-
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from pendulum import datetime
@@ -24,12 +22,15 @@ with DAG(
         network_mode="bridge",
         mount_tmp_dir=False,
         environment={
-            "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
-            "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
-            "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-            "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-            "GLUE_SILVER_DATABASE": os.environ.get("GLUE_SILVER_DATABASE"),
-            "GLUE_GOLD_DATABASE": os.environ.get("GLUE_GOLD_DATABASE"),
-            "ICEBERG_WAREHOUSE": os.environ.get("ICEBERG_WAREHOUSE"),
+            "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
+            "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
+            "S3_ACCESS_KEY": "{{ var.value.S3_ACCESS_KEY }}",
+            "S3_SECRET_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
+            "S3_REGION": "{{ var.value.S3_REGION }}",
+            "GLUE_SILVER_DATABASE": "{{ var.value.GLUE_SILVER_DATABASE }}",
+            "GLUE_GOLD_DATABASE": "{{ var.value.GLUE_GOLD_DATABASE }}",
+            "ICEBERG_WAREHOUSE": "{{ var.value.ICEBERG_WAREHOUSE }}",
         },
     )

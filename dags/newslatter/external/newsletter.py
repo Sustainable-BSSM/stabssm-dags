@@ -1,22 +1,7 @@
-import os
-
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 from airflow.providers.standard.operators.python import PythonOperator
-from docker.types import Mount
 from pendulum import datetime
-
-GDRIVE_HOST_PATH = os.environ.get("GDRIVE_NEWSLETTER_HOST_PATH", "/mnt/gdrive/newsletter")
-GDRIVE_CONTAINER_PATH = "/gdrive"
-
-ENV = {
-    "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
-    "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
-    "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
-    "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY"),
-    "GLUE_DATABASE": os.environ.get("GLUE_DATABASE"),
-    "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-}
 
 with DAG(
         dag_id="external__generate_newslatter_pdf",
@@ -45,19 +30,18 @@ with DAG(
         command=[
             "src.jobs.newslatter.external.generate_newsletter",
             "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
-            "--output-dir", GDRIVE_CONTAINER_PATH,
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
         mount_tmp_dir=False,
-        mounts=[
-            Mount(
-                source=GDRIVE_HOST_PATH,
-                target=GDRIVE_CONTAINER_PATH,
-                type="bind",
-            )
-        ],
-        environment=ENV,
+        environment={
+            "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
+            "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
+            "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
+            "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
+            "GOOGLE_SERVICE_ACCOUNT_JSON": "{{ var.value.GOOGLE_SERVICE_ACCOUNT_JSON }}",
+        },
     )
 
     compute_week >> generate_pdf

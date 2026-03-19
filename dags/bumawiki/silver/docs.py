@@ -1,5 +1,3 @@
-import os
-
 from airflow import DAG
 from airflow.datasets import Dataset
 from airflow.providers.docker.operators.docker import DockerOperator
@@ -41,13 +39,13 @@ with DAG(
         network_mode="bridge",
         mount_tmp_dir=False,
         environment={
-            "S3_ACCESS_KEY": os.environ.get("S3_ACCESS_KEY"),
-            "S3_SECRET_KEY": os.environ.get("S3_SECRET_KEY"),
-            "S3_BUCKET_NAME": os.environ.get("S3_BUCKET_NAME"),
-            "S3_REGION": os.environ.get("S3_REGION"),
-            "AWS_ACCESS_KEY_ID": os.environ.get("S3_ACCESS_KEY"),
-            "AWS_SECRET_ACCESS_KEY": os.environ.get("S3_SECRET_KEY"),
-            "AWS_DEFAULT_REGION": os.environ.get("S3_REGION"),
+            "S3_ACCESS_KEY": "{{ var.value.S3_ACCESS_KEY }}",
+            "S3_SECRET_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
+            "S3_REGION": "{{ var.value.S3_REGION }}",
+            "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
+            "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
+            "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
         },
     )
 
