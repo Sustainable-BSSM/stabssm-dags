@@ -22,6 +22,7 @@ with DAG(
         catchup=False,
         max_active_runs=1,
         tags=["newslatter"],
+        params={"week": ""},
 ):
     def _compute_week(data_interval_start, dag_run):
         if dag_run.conf and (week := dag_run.conf.get("week")):

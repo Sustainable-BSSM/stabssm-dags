@@ -23,19 +23,25 @@ class NewsEmbedder:
         return (matrix.multiply(1 / norms[:, None])).toarray()
 
     def cluster(self, embeddings: np.ndarray, threshold: float = 0.85) -> list[list[int]]:
+        n = len(embeddings)
         sim_matrix = embeddings @ embeddings.T
-        visited: set[int] = set()
-        clusters: list[list[int]] = []
 
-        for i in range(len(embeddings)):
-            if i in visited:
-                continue
-            cluster = [i]
-            visited.add(i)
-            for j in range(i + 1, len(embeddings)):
-                if j not in visited and sim_matrix[i][j] >= threshold:
-                    cluster.append(j)
-                    visited.add(j)
-            clusters.append(cluster)
+        parent = list(range(n))
 
-        return clusters
+        def find(x: int) -> int:
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                if sim_matrix[i][j] >= threshold:
+                    parent[find(i)] = find(j)
+
+        groups: dict[int, list[int]] = {}
+        for i in range(n):
+            root = find(i)
+            groups.setdefault(root, []).append(i)
+
+        return list(groups.values())

@@ -60,15 +60,15 @@ class IcebergNewsGoldRepository(NewsGoldRepository):
     def save(self, df: pl.DataFrame) -> None:
         arrow_table = df.to_arrow()
         week = df["week"][0]
-        for attempt in range(5):
+        for attempt in range(10):
             try:
                 table = self._get_or_create_table(arrow_table)
                 table.overwrite(arrow_table, overwrite_filter=EqualTo("week", week))
                 logger.info(f"[IcebergNewsGoldRepository] saved {len(df)} rows (week={week})")
                 return
             except CommitFailedException as e:
-                if attempt == 4:
+                if attempt == 9:
                     raise
-                wait = 2 ** attempt + random.random()
-                logger.warning(f"[IcebergNewsGoldRepository] commit conflict, retry {attempt + 1}/5 after {wait:.1f}s: {e}")
+                wait = min(2 ** attempt + random.random(), 60.0)
+                logger.warning(f"[IcebergNewsGoldRepository] commit conflict, retry {attempt + 1}/10 after {wait:.1f}s: {e}")
                 time.sleep(wait)

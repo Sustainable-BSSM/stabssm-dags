@@ -15,7 +15,7 @@ from src.infra.newslatter.news_scorer import NewsScorer
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-TOP_N_PER_WEEK = 5
+TOP_N_PER_WEEK = 3
 
 
 class CurateNewsJob(Job):
@@ -47,7 +47,7 @@ class CurateNewsJob(Job):
         # 1. 임베딩 + 의미적 중복 제거 — 클러스터 내 제목 관련성 기준으로 대표 선정
         texts = [f"{r['title']} {r['description']}" for r in rows]
         embeddings = self._embedder.encode(texts)
-        clusters = self._embedder.cluster(embeddings, threshold=0.85)
+        clusters = self._embedder.cluster(embeddings, threshold=0.75)
 
         representatives = [
             rows[self._pick_representative(cluster, rows)]

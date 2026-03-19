@@ -66,15 +66,15 @@ class IcebergNewsRepository(NewsRepository):
             pl.lit(month).alias("month"),
             pl.lit(week).alias("week"),
         ).to_arrow()
-        for attempt in range(5):
+        for attempt in range(10):
             try:
                 table = self._get_or_create_table(arrow_table)
                 table.overwrite(arrow_table, overwrite_filter=EqualTo("week", week))
                 logger.info(f"[IcebergNewsRepository] saved {len(df)} rows (week={week})")
                 return
             except CommitFailedException as e:
-                if attempt == 4:
+                if attempt == 9:
                     raise
-                wait = 2 ** attempt + random.random()
-                logger.warning(f"[IcebergNewsRepository] commit conflict, retry {attempt + 1}/5 after {wait:.1f}s: {e}")
+                wait = min(2 ** attempt + random.random(), 60.0)
+                logger.warning(f"[IcebergNewsRepository] commit conflict, retry {attempt + 1}/10 after {wait:.1f}s: {e}")
                 time.sleep(wait)
