@@ -32,7 +32,7 @@ with DAG(
             "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
-        network_mode="bridge",
+        network_mode="stabssm-dags_stabssm-net",
         mount_tmp_dir=False,
         environment={
             "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
