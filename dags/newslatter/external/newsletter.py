@@ -41,6 +41,7 @@ with DAG(
             "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
             "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
             "GOOGLE_OAUTH_TOKEN_JSON": "{{ var.value.GOOGLE_OAUTH_TOKEN_JSON }}",
+            "NICES_API_KEY": "{{ var.value.NICES_API_KEY }}",
         },
     )
 
