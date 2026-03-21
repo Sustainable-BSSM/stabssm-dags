@@ -9,3 +9,4 @@ logs/**
 .serena
 .claude
 secure-grove-429013-c7-0e192183c9d3.json
+credentials.json

@@ -25,9 +25,9 @@ for entry in "${vars[@]}"; do
 done
 
 # JSON 값은 별도 처리 (콜론 포함)
-if [ -n "${GOOGLE_SERVICE_ACCOUNT_JSON}" ]; then
-  airflow variables set "GOOGLE_SERVICE_ACCOUNT_JSON" "${GOOGLE_SERVICE_ACCOUNT_JSON}"
-  echo "[init_variables] SET GOOGLE_SERVICE_ACCOUNT_JSON"
+if [ -n "${AIRFLOW_VAR_GOOGLE_OAUTH_TOKEN_JSON}" ]; then
+  airflow variables set "GOOGLE_OAUTH_TOKEN_JSON" "${AIRFLOW_VAR_GOOGLE_OAUTH_TOKEN_JSON}"
+  echo "[init_variables] SET GOOGLE_OAUTH_TOKEN_JSON"
 fi
 
 echo "[init_variables] 완료"

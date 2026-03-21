@@ -5,8 +5,6 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-import polars as pl
-
 from src.core.jobs import Job
 from core.pdf.components import ArticleBlock, Divider, NoticeBlock
 from core.pdf.document import NewsletterDocument
@@ -14,6 +12,7 @@ from core.pdf.frame import BSSMNewsLatterFrame
 from core.pdf.styles import NewsletterStyleSheet
 from src.dependencies.repository.newslatter_it_gold_reader import get_it_gold_reader
 from src.dependencies.repository.newslatter_school_gold_reader import get_school_gold_reader
+from src.infra.newslatter.article_rewriter import ArticleRewriter
 from src.infra.newslatter.gdrive_uploader import upload_newsletter
 from src.infra.newslatter.tech_tip_generator import TechTipGenerator
 from src.infra.repository.newslatter.news_gold_reader import IcebergNewsGoldReader
@@ -31,6 +30,7 @@ class GenerateNewsletterJob(Job):
     ):
         self._school_reader = school_gold_reader
         self._it_reader = it_gold_reader
+        self._rewriter = ArticleRewriter()
         self._tech_tip = TechTipGenerator()
 
     def __call__(self, week: str):
@@ -40,62 +40,69 @@ class GenerateNewsletterJob(Job):
         school_df = self._school_reader.read_representatives(week)
         it_df = self._it_reader.read_representatives(week)
 
-        tech_tip = await self._tech_tip.generate(it_df.to_dicts()) if not it_df.is_empty() else ""
-        story = self._build_story(school_df, it_df, tech_tip)
-        if not story:
+        if school_df.is_empty() and it_df.is_empty():
             logger.warning(f"콘텐츠 없음 (week={week}), 종료")
             return
+
+        school_articles, it_articles, tech_tip = await asyncio.gather(
+            self._rewriter.rewrite_all(school_df.to_dicts()),
+            self._rewriter.rewrite_all(it_df.to_dicts()),
+            self._tech_tip.generate(it_df.to_dicts()),
+        )
+
         year, month, _ = week.split("-")
         with tempfile.TemporaryDirectory() as tmpdir:
-            pdf_path = self._render_pdf(week, story, tmpdir)
+            pdf_path = self._render_pdf(week, school_articles, it_articles, tech_tip, tmpdir)
             upload_newsletter(pdf_path, year=year, month=month)
         logger.info(f"[GenerateNewsletterJob] 완료: week={week}")
 
-    def _build_story(self, school_df: pl.DataFrame, it_df: pl.DataFrame, tech_tip: str) -> list:
+    def _render_pdf(
+        self,
+        week: str,
+        school_articles: list[dict],
+        it_articles: list[dict],
+        tech_tip: str,
+        output_dir: str,
+    ) -> str:
         styles = NewsletterStyleSheet()
-        story = []
-
-        if not school_df.is_empty():
-            story.append(NoticeBlock("📰 학교 동향"))
-            story.append(Divider())
-            for row in school_df.to_dicts():
-                story.append(ArticleBlock(
-                    title=row.get("title", ""),
-                    body=row.get("description", ""),
-                    styles=styles,
-                ))
-                story.append(Divider())
-
-        if not it_df.is_empty():
-            story.append(NoticeBlock("💻 IT 업계 동향"))
-            story.append(Divider())
-            for row in it_df.to_dicts():
-                story.append(ArticleBlock(
-                    title=row.get("title", ""),
-                    body=row.get("description", ""),
-                    styles=styles,
-                ))
-                story.append(Divider())
-
-        if tech_tip:
-            story.append(NoticeBlock(f"💡 {tech_tip}"))
-
-        return story
-
-    def _render_pdf(self, week: str, story: list, output_dir: str) -> str:
         year, month, week_num = week.split("-")
         issue = f"{year}년 {int(month)}월 {int(week_num)}주차"
-        layout = BSSMNewsLatterFrame()
-
         out_path = Path(output_dir) / f"newsletter_{week}.pdf"
+
         doc = NewsletterDocument(
             filename=str(out_path),
-            layout=layout,
+            layout=BSSMNewsLatterFrame(),
             title="BSSM 뉴스레터",
             issue=issue,
             date=date.today().strftime("%Y.%m.%d"),
         )
-        doc.build(story)
+
+        if school_articles:
+            (
+                doc
+                    .write(NoticeBlock("📰 학교 동향"))
+                    .write(Divider())
+                    .write_each(
+                        [ArticleBlock(title=a["title"], body=a["body"], styles=styles) for a in school_articles],
+                        sep=Divider(),
+                    )
+            )
+
+        if it_articles:
+            (
+                doc
+                    .write(NoticeBlock("💻 IT 업계 동향"))
+                    .write(Divider())
+                    .write_each(
+                        [ArticleBlock(title=a["title"], body=a["body"], styles=styles) for a in it_articles],
+                        sep=Divider(),
+                    )
+            )
+
+        if tech_tip:
+            doc.write(NoticeBlock(f"💡 {tech_tip}"))
+
+        doc.build()
         logger.info(f"[GenerateNewsletterJob] PDF 생성: {out_path}")
         return str(out_path)
 

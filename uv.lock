@@ -1680,7 +1680,7 @@ wheels = [
 [[package]]
 name = "newslatter"
 version = "0.1.0"
-source = { git = "https://github.com/Sustainable-BSSM/stabssm-newspaper.git#96bbd51ea14628d81f10d19fae155b3fdc255eb7" }
+source = { git = "https://github.com/Sustainable-BSSM/stabssm-newspaper.git#bed5fde6575f6b5accba3bcc1e6a2442f7e0d427" }
 dependencies = [
     { name = "reportlab" },
 ]

@@ -40,7 +40,7 @@ with DAG(
             "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
             "S3_BUCKET_NAME": "{{ var.value.S3_BUCKET_NAME }}",
             "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
-            "GOOGLE_SERVICE_ACCOUNT_JSON": "{{ var.value.GOOGLE_SERVICE_ACCOUNT_JSON }}",
+            "GOOGLE_OAUTH_TOKEN_JSON": "{{ var.value.GOOGLE_OAUTH_TOKEN_JSON }}",
         },
     )
 
