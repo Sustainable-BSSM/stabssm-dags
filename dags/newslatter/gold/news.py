@@ -43,7 +43,7 @@ with DAG(
             "AWS_SECRET_ACCESS_KEY": "{{ var.value.S3_SECRET_KEY }}",
             "AWS_DEFAULT_REGION": "{{ var.value.S3_REGION }}",
             "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
-            "LANGCHAIN_TRACING_V2": "true",
+            "LANGCHAIN_TRACING_V2": "false",
             "LANGCHAIN_API_KEY": "{{ var.value.LANGCHAIN_API_KEY }}",
             "LANGCHAIN_PROJECT": "stabssm",
         },

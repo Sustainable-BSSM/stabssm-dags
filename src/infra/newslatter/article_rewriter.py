@@ -101,10 +101,27 @@ def _parse(result: str) -> list[dict]:
                 in_body = True
             elif in_body and line.strip():
                 body_lines.append(line.strip())
-        body = " ".join(body_lines)
+        body = _join_body(body_lines)
         if title or body:
             sections.append({"title": title, "body": body})
     return sections
+
+
+def _join_body(lines: list[str]) -> str:
+    """줄 목록을 합칠 때 문장 종결 부호 기준으로 공백 처리.
+
+    LLM이 문장 중간에 줄바꿈을 삽입하는 경우(예: '잘 해낼 거\n라 믿어')
+    단순 ' '.join 시 '거 라'처럼 어색한 공백이 생기므로,
+    앞 줄이 문장 종결 부호로 끝날 때만 공백으로 이어 붙인다.
+    """
+    _END_PUNCT = frozenset('.!?。')
+    parts = []
+    for i, line in enumerate(lines):
+        if i == 0 or (parts and parts[-1][-1] in _END_PUNCT):
+            parts.append(line)
+        else:
+            parts[-1] += line
+    return ' '.join(parts)
 
 
 def _is_valid_url(url: str) -> bool:

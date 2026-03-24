@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 
 class ChatOpenRouter(ChatOpenAI):
 
-    def __init__(self, model: str, temperature: float = 1.0, **kwargs):
+    def __init__(self, model: str, temperature: float = 1.0, timeout: int = 60, **kwargs):
         super().__init__(
             model=model,
             temperature=temperature,
             base_url=OpenRouterConfig.BASE_URL,
             api_key=SecretStr(OpenRouterConfig.API_KEY),
+            request_timeout=timeout,
             **kwargs,
         )
 
@@ -30,6 +31,7 @@ class OpenRouterLLM(LLM):
             template: str = None,
             temperature: float = 1.0,
             max_tokens: int = None,
+            timeout: int = 60,
     ):
         super().__init__(
             template=template,
@@ -40,6 +42,7 @@ class OpenRouterLLM(LLM):
         self.model = ChatOpenRouter(
             model=model,
             temperature=self.temperature,
+            timeout=timeout,
         )
 
     async def _call(self, prompt: str) -> Any:

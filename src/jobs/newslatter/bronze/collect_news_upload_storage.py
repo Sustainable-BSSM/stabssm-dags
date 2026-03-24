@@ -61,11 +61,12 @@ class CollectNaverNewsJob(Job):
         for query in self.queries:
             articles = await self._fetch_query(query, semaphore)
             for article in articles:
-                if article.link in seen:
+                article_key = article.original_link or article.link
+                if article_key in seen:
                     continue
                 if not self._in_date_range(article.pub_date, start, end):
                     continue
-                seen.add(article.link)
+                seen.add(article_key)
                 items.append(article.to_dict())
 
         logger.info(f"범위 내 중복 제거 후 총 {len(items)}건")
@@ -73,19 +74,8 @@ class CollectNaverNewsJob(Job):
         if items:
             year, month, week_num = week.split('-')
             key = f"newslatter/bronze/{self.source}/year={year}/month={month}/week={week_num}/news.json"
-            items = self._merge_with_existing(key, items)
             self.storage_client.upload(key=key, value=items)
             logger.info(f"[DONE] {week} - {len(items)}건 업로드")
-
-    def _merge_with_existing(self, key: str, new_items: list[dict]) -> list[dict]:
-        existing = self.storage_client.get(key)
-        if not existing:
-            return new_items
-        existing_links = {item["link"] for item in existing}
-        deduped_new = [item for item in new_items if item["link"] not in existing_links]
-        merged = existing + deduped_new
-        logger.info(f"기존 {len(existing)}건 + 신규 {len(deduped_new)}건 = {len(merged)}건")
-        return merged
 
     @staticmethod
     def _in_date_range(pub_date: str, start: date, end: date) -> bool:
