@@ -7,7 +7,8 @@ from src.core.requester import Requester
 
 logger = logging.getLogger(__name__)
 
-API_URL = "https://www.wanted.co.kr/api/chaos/navigation/v1/results"
+LIST_API_URL = "https://www.wanted.co.kr/api/chaos/navigation/v1/results"
+DETAIL_API_URL = "https://www.wanted.co.kr/api/chaos/jobs/v4/{id}/details"
 
 DEFAULT_PARAMS = {
     "job_group_id": 518,
@@ -43,6 +44,7 @@ class WantedJobPosting:
     is_newbie: bool
     category_id: int
     additional_apply_type: Optional[list]
+    requirements: Optional[str]
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -59,7 +61,7 @@ class WantedJobsCrawler:
         while True:
             params = {**DEFAULT_PARAMS, "offset": offset}
             try:
-                resp = self.requester.get(url=API_URL, headers=DEFAULT_HEADERS, params=params)
+                resp = self.requester.get(url=LIST_API_URL, headers=DEFAULT_HEADERS, params=params)
                 resp.raise_for_status()
                 data = resp.json()
             except Exception as e:
@@ -80,8 +82,25 @@ class WantedJobsCrawler:
             offset += DEFAULT_PARAMS["limit"]
             time.sleep(0.5)
 
-        logger.info(f"[wanted] 전체 {len(all_items)}건 수집 완료")
+        logger.info(f"[wanted] 목록 {len(all_items)}건 수집 완료. 상세 조회 시작")
+
+        for posting in all_items:
+            posting.requirements = self._fetch_requirements(posting.id)
+            time.sleep(0.3)
+
+        logger.info(f"[wanted] 상세 조회 완료")
         return all_items
+
+    def _fetch_requirements(self, job_id: int) -> Optional[str]:
+        url = DETAIL_API_URL.format(id=job_id)
+        try:
+            resp = self.requester.get(url=url, headers=DEFAULT_HEADERS)
+            resp.raise_for_status()
+            detail = resp.json()
+            return detail["data"]["job"]["detail"].get("requirements")
+        except Exception as e:
+            logger.warning(f"[wanted] id={job_id} 상세 조회 실패: {e}")
+            return None
 
     @staticmethod
     def _parse_item(item: dict) -> WantedJobPosting:
@@ -98,4 +117,5 @@ class WantedJobsCrawler:
             is_newbie=item.get("is_newbie", False),
             category_id=item["category_tag"]["id"],
             additional_apply_type=item.get("additional_apply_type"),
+            requirements=None,  # 상세 조회 후 채워짐
         )
