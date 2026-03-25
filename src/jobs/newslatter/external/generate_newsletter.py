@@ -12,9 +12,11 @@ from core.pdf.frame import BSSMNewsLatterFrame
 from core.pdf.styles import NewsletterStyleSheet
 from src.dependencies.repository.newslatter_it_gold_reader import get_it_gold_reader
 from src.dependencies.repository.newslatter_school_gold_reader import get_school_gold_reader
+from src.dependencies.repository.wanted_jobs_gold import get_wanted_jobs_gold_repository
 from src.infra.newslatter.article_rewriter import ArticleRewriter
 from src.infra.newslatter.gdrive_uploader import upload_newsletter
 from src.infra.newslatter.greeting_generator import GreetingGenerator
+from src.infra.newslatter.job_postings_section import build_job_postings_section
 from src.infra.newslatter.tech_tip_generator import TechTipGenerator
 from src.infra.repository.newslatter.news_gold_reader import IcebergNewsGoldReader
 
@@ -31,6 +33,7 @@ class GenerateNewsletterJob(Job):
     ):
         self._school_reader = school_gold_reader
         self._it_reader = it_gold_reader
+        self._jobs_repo = get_wanted_jobs_gold_repository()
         self._rewriter = ArticleRewriter()
         self._greeting = GreetingGenerator()
         self._tech_tip = TechTipGenerator()
@@ -41,8 +44,10 @@ class GenerateNewsletterJob(Job):
     async def _run(self, week: str):
         school_df = self._school_reader.read_representatives(week)
         it_df = self._it_reader.read_representatives(week)
+        jobs_df = self._jobs_repo.read_top(ds=date.today().isoformat(), n=5)
+        job_section = build_job_postings_section(jobs_df)
 
-        if school_df.is_empty() and it_df.is_empty():
+        if school_df.is_empty() and it_df.is_empty() and not job_section.get("sections"):
             logger.warning(f"콘텐츠 없음 (week={week}), 종료")
             return
 
@@ -55,7 +60,7 @@ class GenerateNewsletterJob(Job):
 
         year, month, _ = week.split("-")
         with tempfile.TemporaryDirectory() as tmpdir:
-            pdf_path = self._render_pdf(week, school_section, it_section, tech_tip, greeting, tmpdir)
+            pdf_path = self._render_pdf(week, school_section, it_section, job_section, tech_tip, greeting, tmpdir)
             upload_newsletter(pdf_path, year=year, month=month)
         logger.info(f"[GenerateNewsletterJob] 완료: week={week}")
 
@@ -64,6 +69,7 @@ class GenerateNewsletterJob(Job):
         week: str,
         school_section: dict,
         it_section: dict,
+        job_section: dict,
         tech_tip: str,
         greeting: str,
         output_dir: str,
@@ -93,6 +99,11 @@ class GenerateNewsletterJob(Job):
             doc.write(Divider())
             doc.write(NoticeBlock("💻 IT 업계 동향")).write(Divider())
             _write_sections(doc, it_section, styles)
+
+        if job_section.get("sections"):
+            doc.write(Divider())
+            doc.write(NoticeBlock("💼 이번 주 추천 채용 공고")).write(Divider())
+            _write_sections(doc, job_section, styles)
 
         if tech_tip:
             doc.write(Divider())

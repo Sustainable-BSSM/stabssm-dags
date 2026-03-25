@@ -57,6 +57,29 @@ class IcebergWantedJobsGoldRepository(WantedJobsGoldRepository):
             except TableAlreadyExistsError:
                 return self._catalog.load_table(self._table_id)
 
+    def read_top(self, ds: str, n: int = 5) -> pl.DataFrame:
+        try:
+            table = self._catalog.load_table(self._table_id)
+            df = pl.from_arrow(table.scan(row_filter=EqualTo("dt", ds)).to_arrow())
+            if df.is_empty():
+                return df
+            tier_order = {"S": 0, "A+": 1, "A": 2, "B": 3, "C": 4}
+            df = (
+                df
+                .filter(pl.col("tier") != "C")
+                .with_columns(pl.col("tier").replace(tier_order).alias("_tier_order"))
+                .sort(["_tier_order", "score"], descending=[False, True])
+                .drop("_tier_order")
+            )
+            logger.info(f"[IcebergWantedJobsGoldRepository] read_top {n} rows (ds={ds})")
+            return df.head(n)
+        except NoSuchTableError:
+            logger.warning(f"[IcebergWantedJobsGoldRepository] table not found")
+            return pl.DataFrame()
+        except Exception as e:
+            logger.error(f"[IcebergWantedJobsGoldRepository] read_top failed: {e}")
+            return pl.DataFrame()
+
     def save(self, df: pl.DataFrame, ds: str) -> None:
         arrow_table = df.to_arrow()
         for attempt in range(10):
