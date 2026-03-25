@@ -14,18 +14,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────
-# 티어 기준 (점수 합산)
+# 티어 기준 (점수 합산, 최대 11점)
 # ──────────────────────────────────────────────
-# 정규직(regular)            : +3
-# 신입 가능(is_newbie)        : +2
-# 병역특례(alternative_mil)  : +3
-# 경력 범위 넓음(annual_to≥10): +2  /  [3,9]: +1
+# 정규직(regular)              : +3
+# 신입 가능(is_newbie)          : +2
+# 병역특례(alternative_mil)    : +3
+# annual_to == 100 (경력 무관)  : +3
+# annual_to >= 10  (경력 범위 넓음, 100 제외) : +1
 #
-# S: 8~10  A+: 7  A: 6  B: 4~5  C: 0~3
+# S : 11  A+: 9~10  A: 7~8  B: 4~6  C: 0~3
 # ──────────────────────────────────────────────
 #
 # 학위 요구 키워드 (requirements 필드 검사)
-# 매칭 시 requires_degree=True → gold에서 제외
+# 매칭 시 requires_degree=True → 티어 C 강등
 # ──────────────────────────────────────────────
 DEGREE_KEYWORDS = [
     "학사", "석사", "박사",
@@ -48,19 +49,19 @@ def _score(row: dict) -> int:
     if row.get("is_alternative_military"):
         score += 3
     annual_to = row.get("annual_to", 0) or 0
-    if annual_to >= 10:
-        score += 2
-    elif annual_to >= 3:
+    if annual_to == 100:
+        score += 3
+    elif annual_to >= 10:
         score += 1
     return score
 
 
 def _tier(score: int) -> str:
-    if score >= 8:
+    if score >= 11:
         return "S"
-    if score == 7:
+    if score >= 9:
         return "A+"
-    if score == 6:
+    if score >= 7:
         return "A"
     if score >= 4:
         return "B"
@@ -84,7 +85,13 @@ class TierWantedJobsJob(Job):
 
         degree_count = df["requires_degree"].sum()
         logger.info(f"학위 요구 공고: {degree_count}건 → 티어 C로 강등")
-        logger.info(f"티어 분류 완료:\n{df.group_by('tier').len().sort('tier')}")
+        all_tiers = pl.DataFrame({"tier": ["S", "A+", "A", "B", "C"]})
+        tier_counts = (
+            all_tiers
+            .join(df.group_by("tier").len(), on="tier", how="left")
+            .with_columns(pl.col("len").fill_null(0))
+        )
+        logger.info(f"티어 분류 완료:\n{tier_counts}")
 
         self._gold_repo.save(df, ds)
 
@@ -99,7 +106,10 @@ class TierWantedJobsJob(Job):
 
         # 학위 요구 여부 판별
         rows = df.to_dicts()
-        degree_flags = [_requires_degree(r.get("requirements")) for r in rows]
+        degree_flags = [
+            _requires_degree(r.get("requirements")) or "전문연구요원" in (r.get("position") or "")
+            for r in rows
+        ]
         scores = [_score(r) for r in rows]
         tiers = ["C" if deg else _tier(s) for deg, s in zip(degree_flags, scores)]
 
@@ -111,7 +121,7 @@ class TierWantedJobsJob(Job):
                 pl.Series("tier", tiers, dtype=pl.String),
                 pl.lit(ds).alias("dt"),
             ])
-            .drop(["additional_apply_type", "requirements"])
+            .drop(["additional_apply_type", "requirements"])  # 가공된 필드(is_alternative_military, requires_degree)로 대체
         )
 
 
