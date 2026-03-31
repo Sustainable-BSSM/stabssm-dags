@@ -4,14 +4,15 @@ from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
 
 with DAG(
-        dag_id="external__generate_newslatter_pdf",
-        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-        schedule="@weekly",
-        catchup=False,
-        max_active_runs=1,
-        tags=["newslatter", "external"],
-        params={"week": ""},
+    dag_id="external__generate_newslatter_pdf",
+    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+    schedule="@weekly",
+    catchup=False,
+    max_active_runs=1,
+    tags=[".newslatter", "external"],
+    params={"week": ""},
 ):
+
     def _compute_week(data_interval_start, dag_run):
         if dag_run.conf and (week := dag_run.conf.get("week")):
             return week
@@ -29,10 +30,11 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.newslatter.external.generate_newsletter",
-            "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
+            "--week",
+            "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
-        network_mode="stabssm-dags_stabssm-net",
+        network_mode="bridge",
         mount_tmp_dir=False,
         environment={
             "AWS_ACCESS_KEY_ID": "{{ var.value.S3_ACCESS_KEY }}",
@@ -45,6 +47,8 @@ with DAG(
             "OPENROUTER_API_KEY": "{{ var.value.OPENROUTER_API_KEY }}",
             "GOOGLE_OAUTH_TOKEN_JSON": "{{ var.value.GOOGLE_OAUTH_TOKEN_JSON }}",
             "NICES_API_KEY": "{{ var.value.NICES_API_KEY }}",
+            "DISCORD_BOT_API_KEY": "{{ var.value.DISCORD_BOT_API_KEY }}",
+            "DISCORD_GUILD_ID": "{{ var.value.DISCORD_GUILD_ID }}",
         },
     )
 

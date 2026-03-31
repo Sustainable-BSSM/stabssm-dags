@@ -4,12 +4,12 @@ from airflow.providers.standard.operators.python import PythonOperator
 from pendulum import datetime
 
 with DAG(
-        dag_id="bronze__collect_naver_school_news",
-        start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
-        schedule="@weekly",
-        catchup=False,
-        max_active_runs=1,
-        tags=["newslatter"],
+    dag_id="bronze__collect_naver_school_news",
+    start_date=datetime(2020, 1, 1, tz="Asia/Seoul"),
+    schedule="@weekly",
+    catchup=False,
+    max_active_runs=1,
+    tags=[".newslatter"],
 ) as dag:
 
     def _compute_week(data_interval_start, dag_run):
@@ -29,7 +29,8 @@ with DAG(
         image="stabssm-jobs:latest",
         command=[
             "src.jobs.newslatter.bronze.collect_news_upload_storage",
-            "--week", "{{ ti.xcom_pull(task_ids='compute_week') }}",
+            "--week",
+            "{{ ti.xcom_pull(task_ids='compute_week') }}",
         ],
         docker_url="unix:///var/run/docker.sock",
         network_mode="bridge",
