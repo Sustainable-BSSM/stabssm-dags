@@ -11,10 +11,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY pyproject.toml uv.lock /app/
 
-RUN pip install --no-cache-dir uv \
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir uv \
  && uv pip install --system --no-cache -r pyproject.toml
 
 COPY src /app/src
+COPY .newslatter/design/component/bssm_logo.png /app/assets/bssm_logo.png
+COPY .newslatter/design/component/end.png /app/assets/end.png
 
 ENTRYPOINT ["python", "-m"]
 CMD ["src.jobs.bumawiki.collect_student"]
