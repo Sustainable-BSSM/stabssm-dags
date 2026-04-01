@@ -49,6 +49,7 @@ with DAG(
             "NICES_API_KEY": "{{ var.value.NICES_API_KEY }}",
             "DISCORD_BOT_API_KEY": "{{ var.value.DISCORD_BOT_API_KEY }}",
             "DISCORD_GUILD_ID": "{{ var.value.DISCORD_GUILD_ID }}",
+            "DISCORD_FORUM_CHANNEL_ID": "{{ var.value.DISCORD_FORUM_CHANNEL_ID }}",
         },
     )
 

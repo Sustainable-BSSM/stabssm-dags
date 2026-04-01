@@ -39,6 +39,9 @@ x-airflow-common-env: &airflow-common-env
   AIRFLOW_VAR_NEO4J_PASSWORD: ${NEO4J_PASSWORD}
   AIRFLOW_VAR_LANGCHAIN_API_KEY: ${LANGSMITH_API_KEY}
   AIRFLOW_VAR_GOOGLE_OAUTH_TOKEN_JSON: ${GOOGLE_OAUTH_TOKEN_JSON}
+  AIRFLOW_VAR_DISCORD_BOT_API_KEY: ${DISCORD_BOT_API_KEY}
+  AIRFLOW_VAR_DISCORD_GUILD_ID: ${DISCORD_GUILD_ID}
+  AIRFLOW_VAR_DISCORD_FORUM_CHANNEL_ID: ${DISCORD_PROMOTION_FORUM}
   _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-docker>=4.5.2 apache-airflow-providers-fab>=1.2.0
 
 x-airflow-common: &airflow-common
@@ -97,10 +100,10 @@ services:
     <<: *airflow-common
     environment:
       <<: *airflow-common-env
-      AIRFLOW__API__BASE_URL: http://localhost:8080
+      AIRFLOW__API__BASE_URL: http://localhost:4444
     command: api-server
     ports:
-      - "8080:8080"
+      - "4444:8080"
     restart: unless-stopped
 
   airflow-scheduler:
